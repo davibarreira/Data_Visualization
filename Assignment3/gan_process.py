@@ -31,37 +31,6 @@ else:
 if is_cuda:
     generator = generator.cuda()
 generator.eval()
-
-'''
-This draws a sample from the StyleGAN generator.
-First we sample a random latent code.
-Then we feed this through a generator neural network, producing a 3-channel RGB image, as well as activations at early layers.
-In particular:
-* `act2` are activations at layer 2 (0-indexing used here), giving us an 512x8x8 tensor of activations, e.g. 512 channels, 8x8 spatial resolution
-* `act3` are activations at layer 3, giving us another 512x8x8 tensor of activations.
-* `act3_up` is the result of bilinear upsampling of `act3` to a 512x16x16 tensor.
-* `act4` are activations at layer 4, giving us a 512x16x16 tensor of activations.
-'''
-def sample_generator():
-    code = torch.randn(1,generator.z_space_dim)
-    if is_cuda:
-        code = code.cuda()
-
-    with torch.no_grad():
-        # truncated normal distribution, no random noise in style layers!
-        gen_out =  generator(code, trunc_psi=0.7,trunc_layers=8,randomize_noise=False)
-
-        act2 = gen_out['act2'][0].detach()
-        act3 = gen_out['act3'][0].detach()
-        act3_up = torch.nn.functional.interpolate(act3.unsqueeze(0),scale_factor=2,mode='bilinear',align_corners=True)[0]
-        act4 = gen_out['act4'][0].detach()
-
-        image = gen_out['image'][0].detach()
-    #
-
-    return act2,act3,act3_up,act4,image
-#
-
 '''
 Postprocess images from the generator network - suitable to write to disk via PIL.
 '''
@@ -83,7 +52,16 @@ This should return a tensor of shape (channel x channel)
 NOTE: this can be done with a few lines of code using broadcasting! (no loops necessary)
 '''
 def iou(a_i,a_j):
-    pass
+    iou = torch.zeros(a_i.shape[0],512,512)
+    for s in range(0,a_i.shape[0]):
+        for i in range(0,a_i.shape[1]):
+            for j in range(i,a_j.shape[1]):
+                tsum = a_i[s][i] + a_j[s][j]
+                iou[s,i,j] = torch.sum(tsum>1)/torch.sum(tsum>0)
+                iou[s,j,i] = iou[s,i,j]
+                
+    return iou
+    
 #
 
 '''
@@ -93,8 +71,15 @@ Given a tensor of activations (n_samples x channels x x-resolution x y-resolutio
 based on the quantile (perform this per channel)
 '''
 def threshold(acts,k=4):
-    pass
-#
+    tensor_list=[]
+    qt =[]
+    for i in range(0,acts.shape[1]):
+        q = torch.quantile(acts[:,i,:,:],1-1/4)
+        tensor_list.append((acts[:,i,:,:] > q).type(torch.uint8))
+        qt.append(q)
+    t = torch.stack(tensor_list)
+    qt=  torch.stack(qt)
+    return t.permute(1,0,2,3),qt
 
 '''
 TODO
@@ -110,4 +95,41 @@ Write everything to the 'static' directory.
 '''
 if __name__=='__main__':
     n_samples = 20
-#
+#     samples = []
+    act2    = []
+    act3    = []
+    act3up  = []
+    act4    = []
+    images  = []
+    for i in range(0,n_samples):
+        sample = sample_generator()
+        act2.append(sample[0])
+        act3.append(sample[1])
+        act3up.append(sample[2])
+        act4.append(sample[3])
+        images.append(sample[4])
+        
+    act2   = torch.stack(act2)
+    act3   = torch.stack(act3)
+    act3up = torch.stack(act3up)
+    act4   = torch.stack(act4)
+    images = torch.stack(images)
+    
+    tact2,q2   = threshold(act2)
+    tact3,q3   = threshold(act3)
+    tact3up,q3up = threshold(act3up)
+    tact4,q4   = threshold(act4)
+    
+    qt = torch.dstack((q2,q3,q3up,q4))[0]
+    torch.save(qt,'./static/qt.pt')
+    
+    iou2_3  = iou(tact2,tact3)
+    torch.save(iou2_3,'./static/tensor2_3.pt')
+    
+    iou3_4  = iou(tact3up,tact4)
+    torch.save(iou3_4,'./static/tensor3_4.pt')
+    
+    images = postprocess(images)
+    for i in range(0,n_samples):
+        im = Image.fromarray(images[i],"RGB")
+        im.save('./static/image'+str(i)+'.jpeg')
