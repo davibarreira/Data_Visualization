@@ -25,6 +25,20 @@ CORS(app)
 
 # TODO load all of the data generated from preprocessing
 
+qt = torch.load('./static/qt.pt')
+tensor2_3 = torch.load('./static/tensor2_3.pt')
+tensor2_3 = torch.nan_to_num(tensor2_3,nan=0.0) # Ajustando casos nan
+
+tensor3_4 = torch.load('./static/tensor3_4.pt')
+tensor3_4 = torch.nan_to_num(tensor3_4,nan=0.0) #  Ajustando casos nan
+
+s23 = tensor2_3.sum(dim=0)
+s34 = tensor3_4.sum(dim=0)
+
+images = []
+for i in range(0,20):
+    images.append(Image.open('./static/image'+str(i)+'.jpeg'))
+
 # number of clusters - feel free to adjust
 n_clusters = 9
 
@@ -52,8 +66,28 @@ You may use k-means once you've obtained the spectral embedding.
 NOTE: the affinity matrix should _not_ be symmetric! Nevertheless, eigenvectors will be real, up to numerical precision - so you should cast to real numbers (e.g. np.real).
 '''
 def spectral_clustering(affinity_mat, n_clusters):
-    pass
-#
+    # code based on https://towardsdatascience.com/spectral-clustering-aba2640c0d5b
+    # diagonal matrix
+    D = torch.diag(torch.sum(affinity_mat,dim=1))
+
+    # graph laplacian
+    L = torch.pow(torch.inverse(D),1/2) @ affinity_mat @ torch.pow(D,1/2)
+
+    # eigenvalues and eigenvectors
+    vals, vecs = torch.eig(L,eigenvectors=True)
+    vals = vals[:,0]
+    # sort these based on the eigenvalues
+    vals = vals[torch.argsort(vals,descending=True)]
+    vecs = vecs[:,torch.argsort(vals,descending=True)]
+    row_norms = torch.norm(vecs[:,0:2],dim=1).unsqueeze(1).repeat(1,2)
+
+    Y = vecs[:,0:2]/row_norms
+    
+    # kmeans on first three vectors with nonzero eigenvalues
+    kmeans = KMeans(n_clusters=n_clusters,random_state=7)
+    kmeans.fit(Y[:,1:n_clusters])
+    labels = kmeans.labels_
+    return labels
 
 '''
 TODO
@@ -65,14 +99,32 @@ The second argument is the similarity matrix between channels at layer 3 and cha
 
 A generalization of spectral biclustering should be performed. More details given in the assignment notebook.
 '''
-def multiway_spectral_clustering(sim_a2_a3, sim_a3_a4, n_clusters):
-    pass
-#
+def multiway_spectral_clustering(s23, s34, n_clusters):
+
+    c23 = torch.diag(s23.sum(dim=0))
+    r23 = torch.diag(s23.sum(dim=1))
+
+    c34 = torch.diag(s34.sum(dim=0))
+    r34 = torch.diag(s34.sum(dim=1))
+
+    s2  = torch.inverse(r23) @ s23 @ torch.transpose(s23 @ torch.inverse(c23),0,1)
+    s4  = torch.transpose(s34 @ torch.inverse(c34),0,1) @ torch.inverse(r34) @ s34 
+    s3  = torch.transpose(s23 @ torch.inverse(c23),0,1) @ torch.inverse(r23) @ s23 \
+            + torch.inverse(r34) @ s34 @ torch.transpose(s34 @ torch.inverse(c34),0,1)
+    
+    c2 = spectral_clustering(s2,n_clusters)
+    c3 = spectral_clustering(s3,n_clusters)
+    c4 = spectral_clustering(s4,n_clusters)
+    
+    return c2, c3, c4
+
 
 '''
 TODO
 
-Given a link selected from the visualization, namely the layer and clusters at the individual layers, this route should compute the mean correlation from all channels in the source layer and all channels in the target layer, for each sample.
+Given a link selected from the visualization, namely the layer and
+clusters at the individual layers, this route should compute the mean
+correlation from all channels in the source layer and all channels in the target layer, for each sample.
 '''
 @app.route('/link_score', methods=['GET','POST'])
 def link_score():
@@ -82,7 +134,9 @@ def link_score():
 '''
 TODO
 
-Given a layer (of your choosing), perform max-pooling over space, giving a vector of activations over channels for each sample. Perform UMAP to compute a 2D projection.
+Given a layer (of your choosing), perform max-pooling over space,
+giving a vector of activations over channels for each sample.
+Perform UMAP to compute a 2D projection.
 '''
 @app.route('/channel_dr', methods=['GET','POST'])
 def channel_dr():
@@ -112,8 +166,11 @@ def activation_correlation_clustering():
 '''
 TODO
 
-In the main, before running the server, run clustering, store results in variables a2_clustering, a3_clustering, a4_clustering
+In the main, before running the server, run clustering,
+store results in variables a2_clustering, a3_clustering, a4_clustering
 '''
 if __name__=='__main__':
+    a2_clustering,a3_clustering,a4_clustering = multiway_spectral_clustering(s23,s34,n_clusters)
+
     app.run()
 #
