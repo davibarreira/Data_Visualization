@@ -3,6 +3,9 @@ import flask
 import numpy as np
 import time
 from PIL import Image
+import pandas as pd
+import json
+import itertools
 
 from tqdm import tqdm
 
@@ -158,10 +161,47 @@ TODO
 
 Compute correlation strength over all instances.
 '''
+def correlations_activation(clustering1,clustering2, tensor,n_clusters):
+    corr = []
+    n      = 0
+    for h in list(itertools.combinations(range(n_clusters),2)):
+        c1_index = np.where(clustering1==h[0])[0]
+        c2_index = np.where(clustering2==h[1])[0]
+        corr.append(0)
+        Z = tensor.shape[0] * sum(clustering1==h[0]) * sum(clustering2==h[1])
+        for j in c1_index:
+            for k in c2_index:
+                corr[n] += tensor[:,j,k].sum()
+        corr[n] = corr[n]/Z
+        n+=1
+    return corr
+
 @app.route('/activation_correlation_clustering', methods=['GET'])
 def activation_correlation_clustering():
-    pass
-#
+    # Calculate the correlations
+    corr23 = correlations_activation(a2_clustering,a3_clustering,tensor2_3,n_clusters)
+    corr34 = correlations_activation(a3_clustering,a4_clustering,tensor3_4,n_clusters)
+
+    # Turn tensor into float
+    corr23 = [i.item() for i in corr23]
+    corr34 = [i.item() for i in corr34]
+
+    # Create dataset with the correlation and links
+    cline23 = []
+    cline34 = []
+    for h in list(itertools.combinations(range(n_clusters),2)):
+        cline23.append((h[0],h[1]))
+        cline34.append((h[0],h[1]))
+    links23 = pd.DataFrame(cline23,columns=["cluster_input","cluster_output"])
+    links23["corr"] = corr23
+    links34 = pd.DataFrame(cline34,columns=["cluster_input","cluster_output"])
+    links34["corr"] = corr34
+
+    return json.dumps({
+        "link23":links23.to_dict(orient='records'),
+        "link34":links34.to_dict(orient='records'),
+        })
+
 
 '''
 TODO
