@@ -164,16 +164,17 @@ Compute correlation strength over all instances.
 def correlations_activation(clustering1,clustering2, tensor,n_clusters):
     corr = []
     n      = 0
-    for h in list(itertools.combinations(range(n_clusters),2)):
-        c1_index = np.where(clustering1==h[0])[0]
-        c2_index = np.where(clustering2==h[1])[0]
-        corr.append(0)
-        Z = tensor.shape[0] * sum(clustering1==h[0]) * sum(clustering2==h[1])
-        for j in c1_index:
-            for k in c2_index:
-                corr[n] += tensor[:,j,k].sum()
-        corr[n] = corr[n]/Z
-        n+=1
+    for h in range(n_clusters):
+        for l in range(n_clusters):
+            c1_index = np.where(clustering1==h)[0]
+            c2_index = np.where(clustering2==l)[0]
+            corr.append(0)
+            Z = tensor.shape[0] * sum(clustering1==h) * sum(clustering2==l)
+            for j in c1_index:
+                for k in c2_index:
+                    corr[n] += tensor[:,j,k].sum()
+            corr[n] = corr[n]/Z
+            n+=1
     return corr
 
 @app.route('/activation_correlation_clustering', methods=['GET'])
@@ -189,9 +190,10 @@ def activation_correlation_clustering():
     # Create dataset with the correlation and links
     cline23 = []
     cline34 = []
-    for h in list(itertools.combinations(range(n_clusters),2)):
-        cline23.append((h[0],h[1]))
-        cline34.append((h[0],h[1]))
+    for h in range(n_clusters):
+        for l in range(n_clusters):
+            cline23.append((h,l))
+            cline34.append((h,l))
     links23 = pd.DataFrame(cline23,columns=["cluster_input","cluster_output"])
     links23["corr"] = corr23
     links34 = pd.DataFrame(cline34,columns=["cluster_input","cluster_output"])
