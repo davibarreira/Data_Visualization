@@ -2,3 +2,5 @@
 /Assignment2/static
 /Assignment3/checkpoints
 /Assignment2/checkpoints
+*.jld2
+*.ipynb_checkpoints/
