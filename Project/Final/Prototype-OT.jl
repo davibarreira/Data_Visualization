@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.14.5
+# v0.14.7
 
 using Markdown
 using InteractiveUtils
@@ -330,6 +330,15 @@ df[!,:origin] = vcat(mnistorigin,fmnistorigin);
 # ╔═╡ fc45b031-97a8-413b-8e5c-c05cae5f4dcb
 df[!,:final] = vcat(mnistfinal,fmnistfinal);
 
+# ╔═╡ c6e21e55-1bb0-4d51-873a-39ce688129b9
+
+
+# ╔═╡ 2cb1246c-97b7-473d-99d5-580e9e1d85eb
+
+
+# ╔═╡ 07b99ed2-ee87-4cea-bbbf-f4918dc507d2
+
+
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
@@ -381,3 +390,6 @@ df[!,:final] = vcat(mnistfinal,fmnistfinal);
 # ╠═30123390-64fd-47c1-932b-adef269724fa
 # ╠═b9b87cca-feeb-42ea-911b-83f1a9339194
 # ╠═fc45b031-97a8-413b-8e5c-c05cae5f4dcb
+# ╠═c6e21e55-1bb0-4d51-873a-39ce688129b9
+# ╠═2cb1246c-97b7-473d-99d5-580e9e1d85eb
+# ╠═07b99ed2-ee87-4cea-bbbf-f4918dc507d2
