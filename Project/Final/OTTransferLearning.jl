@@ -86,6 +86,7 @@ begin
 		img    = img_url,
 		label  = vcat(mnist_y[1:N],fmnist_y[1:N]),
 		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
+
 end
 
 # ╔═╡ 29ac65a4-a1c1-47a8-a691-be90f988709f
@@ -94,7 +95,7 @@ Dataframe to Json to pass to JavaScript
 """
 
 # ╔═╡ 3994768a-526e-4116-8dee-f398c7a36ffd
-dfjson = arraytable(df);
+dfjson = arraytable(df)
 
 # ╔═╡ 21b3b741-1ea1-49a4-a6ae-b22666f53e19
 md"""
@@ -212,6 +213,76 @@ This will allow to create more interactivity.
 Still on progress...
 """
 
+# ╔═╡ 7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+@htl("""
+	<head>
+    <title>Embedding Vega-Lite</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+  </head>
+  <body>
+    <div id="myvis"></div>
+
+    <script id="createplot">
+		var height = 400;
+		var width = 600;
+		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
+	
+		const data = JSON.parse($(dfjson))
+	
+		const svg = d3
+			.select("#myvis")
+			.append("svg")
+			.attr("width", width + margin.left + margin.right)
+    		.attr("height", height + margin.top + margin.bottom)
+	
+	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
+    .range([margin.left, width - margin.right]);
+
+
+const y = d3.scaleLinear()
+   .domain(d3.extent(data, d => d.y)).nice()
+   .range([height - margin.bottom, margin.top]);
+	
+	const dot = svg.append("g")
+	.selectAll("circle")
+	.data(data)
+	.join("circle")
+    .transition()
+    .duration(300)
+	.attr("cx", d => x(d.x))
+	.attr("cy", d => y(d.y))
+	.attr("r", 5)
+	.attr("fill", "steelblue")
+    .attr("stroke", "steelblue")
+	.attr("stroke-width", 2)
+	.attr('opacity',0.5)
+	
+	function brushed({selection}) {
+    let value = [];
+    if (selection) {
+      const [[x0, y0], [x1, y1]] = selection;
+      value = dot
+        .style("stroke", "gray")
+        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+        .style("stroke", "steelblue")
+        .data();
+    } else {
+      dot.style("stroke", "steelblue");
+    }
+    svg.property("value", value).dispatch("input");
+  }
+	const brush = d3.brush()
+      .on("start brush end", brushed);
+	
+	 svg.call(brush);
+	
+    </script>
+  </body>
+""")
+
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 @htl("""
 		
@@ -222,7 +293,7 @@ Still on progress...
 var height = 400;
 var width = 600;
 var margin = ({top: 20, right: 30, bottom: 30, left: 40});
-	
+
 
 const data = JSON.parse($(dfjson))
 
@@ -235,28 +306,69 @@ const y = d3.scaleLinear()
    .range([height - margin.bottom, margin.top]);
 
 const svg = DOM.svg(width,height)
-const s = this == null ? d3.select(svg) : this.s
+const dot = d3.select(svg)
 
-s.selectAll("circle")
+
+dot.selectAll("circle")
 	.data(data)
 	.join("circle")
     .transition()
     .duration(300)
 	.attr("cx", d => x(d.x))
 	.attr("cy", d => y(d.y))
-	.attr("r", 10)
-	.attr("fill", "gray")
+	.attr("r", 5)
+	.attr("fill", "steelblue")
+    .attr("stroke", "steelblue")
+	.attr("stroke-width", 2)
+	.attr('opacity',0.5)
 
 
+  function brushed({selection}) {
+    let value = [];
+    if (selection) {
+      const [[x0, y0], [x1, y1]] = selection;
+      value = dot
+        .style("stroke", "gray")
+        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+        .style("stroke", "steelblue")
+        .data();
+    } else {
+      dot.style("stroke", "steelblue");
+    }
+    svg.property("value", value).dispatch("input");
+  }
 
-
-
+const brush = d3.brush()
+      .on("start brush end", brushed);
+// svg.call(brush);
+	
 const output = svg
-output.s = s
+output.dot = dot
 return output
 </script>
 
 """)
+
+# ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
+# function brushed({selection}) {
+#     let value = [];
+#     if (selection) {
+#       const [[x0, y0], [x1, y1]] = selection;
+#       value = dot
+#         .style("stroke", "gray")
+#         .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+#         .style("stroke", "steelblue")
+#         .data();
+#     } else {
+#       dot.style("stroke", "steelblue");
+#     }
+#     svg.property("value", value).dispatch("input");
+# }
+
+# const brush = d3.brush()
+#       .on("start brush end", brushed);
+	
+# svg.call(brush);
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
@@ -289,6 +401,8 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╠═c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
+# ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
+# ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
