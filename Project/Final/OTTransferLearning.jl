@@ -206,6 +206,9 @@ This is another key visualization. It's a Heatmap showing how the labels are bei
   </body>
 """)
 
+# ╔═╡ 359d09ac-a255-4688-b43a-af5b052e7c7d
+selection = []
+
 # ╔═╡ 742ef2ec-4c23-46e7-ad39-ff838ef156b1
 md"""
 ### Using D3 with Pluto
@@ -250,27 +253,25 @@ const y = d3.scaleLinear()
 	.selectAll("circle")
 	.data(data)
 	.join("circle")
-    .transition()
-    .duration(300)
 	.attr("cx", d => x(d.x))
 	.attr("cy", d => y(d.y))
 	.attr("r", 5)
 	.attr("fill", "steelblue")
     .attr("stroke", "steelblue")
-	.attr("stroke-width", 2)
+	.attr("stroke-width", 0)
 	.attr('opacity',0.5)
 	
 	function brushed({selection}) {
-    let value = [];
+	let value = [];
     if (selection) {
       const [[x0, y0], [x1, y1]] = selection;
       value = dot
-        .style("stroke", "gray")
+        .style("fill", "gray")
         .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-        .style("stroke", "steelblue")
+        .style("fill", "steelblue")
         .data();
     } else {
-      dot.style("stroke", "steelblue");
+      dot.style("fill", "steelblue");
     }
     svg.property("value", value).dispatch("input");
   }
@@ -283,92 +284,14 @@ const y = d3.scaleLinear()
   </body>
 """)
 
+# ╔═╡ 3b91fc15-38c4-4088-a92a-c85a861c1ca4
+
+
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
-@htl("""
-		
-<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
 
-<script id="hello">
-	
-var height = 400;
-var width = 600;
-var margin = ({top: 20, right: 30, bottom: 30, left: 40});
-
-
-const data = JSON.parse($(dfjson))
-
-const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
-    .range([margin.left, width - margin.right]);
-
-
-const y = d3.scaleLinear()
-   .domain(d3.extent(data, d => d.y)).nice()
-   .range([height - margin.bottom, margin.top]);
-
-const svg = DOM.svg(width,height)
-const dot = d3.select(svg)
-
-
-dot.selectAll("circle")
-	.data(data)
-	.join("circle")
-    .transition()
-    .duration(300)
-	.attr("cx", d => x(d.x))
-	.attr("cy", d => y(d.y))
-	.attr("r", 5)
-	.attr("fill", "steelblue")
-    .attr("stroke", "steelblue")
-	.attr("stroke-width", 2)
-	.attr('opacity',0.5)
-
-
-  function brushed({selection}) {
-    let value = [];
-    if (selection) {
-      const [[x0, y0], [x1, y1]] = selection;
-      value = dot
-        .style("stroke", "gray")
-        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-        .style("stroke", "steelblue")
-        .data();
-    } else {
-      dot.style("stroke", "steelblue");
-    }
-    svg.property("value", value).dispatch("input");
-  }
-
-const brush = d3.brush()
-      .on("start brush end", brushed);
-// svg.call(brush);
-	
-const output = svg
-output.dot = dot
-return output
-</script>
-
-""")
 
 # ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
-# function brushed({selection}) {
-#     let value = [];
-#     if (selection) {
-#       const [[x0, y0], [x1, y1]] = selection;
-#       value = dot
-#         .style("stroke", "gray")
-#         .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-#         .style("stroke", "steelblue")
-#         .data();
-#     } else {
-#       dot.style("stroke", "steelblue");
-#     }
-#     svg.property("value", value).dispatch("input");
-# }
 
-# const brush = d3.brush()
-#       .on("start brush end", brushed);
-	
-# svg.call(brush);
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
@@ -400,8 +323,10 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╠═a7db774c-363b-4a92-9c20-df4477c4a135
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╠═c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
+# ╠═359d09ac-a255-4688-b43a-af5b052e7c7d
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
 # ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+# ╠═3b91fc15-38c4-4088-a92a-c85a861c1ca4
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
