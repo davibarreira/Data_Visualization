@@ -4,6 +4,15 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        el
+    end
+end
+
 # ╔═╡ 8529c382-f72f-44f7-8ccd-ce68ab03776e
 begin
     import Pkg
@@ -207,7 +216,10 @@ This is another key visualization. It's a Heatmap showing how the labels are bei
 """)
 
 # ╔═╡ 359d09ac-a255-4688-b43a-af5b052e7c7d
-selection = []
+
+
+# ╔═╡ 7ad897bd-3727-4bbb-a06b-710233977f00
+
 
 # ╔═╡ 742ef2ec-4c23-46e7-ad39-ff838ef156b1
 md"""
@@ -218,17 +230,18 @@ Still on progress...
 
 # ╔═╡ 7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 @htl("""
-	<head>
-    <title>Embedding Vega-Lite</title>
+	<div>
     <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
 	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-  </head>
-  <body>
     <div id="myvis"></div>
 
     <script id="createplot">
+	var div = currentScript.parentElement
+	
+	var selection = 0;
+	
 		var height = 400;
 		var width = 600;
 		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
@@ -276,25 +289,42 @@ const y = d3.scaleLinear()
       dot.style("fill", "steelblue")
 		 .attr("class","selected");
     }
+	div.value = value;
     svg.property("value", value).dispatch("input");
   }
 	const brush = d3.brush()
       .on("start brush end", brushed);
 	
 	 svg.call(brush);
-	
+	div.value = svg.selectAll("selected")
     </script>
-  </body>
+	</div>
 """)
 
-# ╔═╡ 3b91fc15-38c4-4088-a92a-c85a861c1ca4
-
-
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
+GetSelected(text="Get Selection") = @htl("""
+	<div id="ok">
+	<button>$(text)</button>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+    <script id="selection">
+	var div = currentScript.parentElement
+	var button = div.querySelector("button")
+	button.addEventListener("click", (e) => {
+		div.value = d3.select("#myvis").selectAll("svg").selectAll(".selected").data()
+		div.dispatchEvent(new CustomEvent("input"))
+		e.preventDefault()
+	})
+	const svg = d3.select("#myvis").selectAll("svg").selectAll(".selected")
+	div.value = svg.data()
+    </script>
+	</div>
+""")
 
+# ╔═╡ 2d4162da-f42a-4bfb-b75f-8c0b37d26b25
+@bind selected GetSelected()
 
 # ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
-
+selected
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
@@ -327,10 +357,11 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╠═c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╠═359d09ac-a255-4688-b43a-af5b052e7c7d
+# ╠═7ad897bd-3727-4bbb-a06b-710233977f00
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
-# ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
-# ╠═3b91fc15-38c4-4088-a92a-c85a861c1ca4
-# ╠═839f0087-5890-462d-8507-70b3c3db797d
+# ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+# ╟─839f0087-5890-462d-8507-70b3c3db797d
+# ╟─2d4162da-f42a-4bfb-b75f-8c0b37d26b25
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
