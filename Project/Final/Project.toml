@@ -1,4 +1,5 @@
 [deps]
+CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
