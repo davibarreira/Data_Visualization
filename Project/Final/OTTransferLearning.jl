@@ -267,11 +267,14 @@ const y = d3.scaleLinear()
       const [[x0, y0], [x1, y1]] = selection;
       value = dot
         .style("fill", "gray")
+		.attr("class","unselected")
         .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
         .style("fill", "steelblue")
+		.attr("class","selected")
         .data();
     } else {
-      dot.style("fill", "steelblue");
+      dot.style("fill", "steelblue")
+		 .attr("class","selected");
     }
     svg.property("value", value).dispatch("input");
   }
