@@ -1,0 +1,10 @@
+using OptimalTransport
+using VegaLite
+using Distances
+using Distributions
+using Images
+using DataFrames
+using LinearAlgebra
+using SparseArrays
+using Tulip
+using UMAP
