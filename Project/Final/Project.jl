@@ -199,7 +199,7 @@ Scatter = @htl("""
 
         var selection = 0;
 
-        var height = 500;
+        var height = 300;
         var width = 460;
         var margin = { top: 20, right: 30, bottom: 30, left: 40 };
 
@@ -296,15 +296,39 @@ Scatter = @htl("""
         }
         const brush = d3.brush().on("start brush end", brushed);
 
-        //svg.call(d3.zoom().extent([[0, 0], [width, height]]).translateExtent([[0, 0], [width, height]])
-        //.scaleExtent([1, 8]).on("zoom", zoomed)).on("touchstart.zoom", null).on("mousedown.zoom", null)
-        //.on("dblclick.zoom", null);
-
-        function zoomed({ transform }) {
-            myimage.attr("transform", transform);
-        }
         svg.call(brush);
 
+	
+	
+	
+	function brushselection({ selection }) {
+            let value = [];
+            if (selection) {
+                const [[x0, y0], [x1, y1]] = selection;
+
+                var visible = plot2
+                    .selectAll("image")
+                    .attr("opacity", 0)
+                    .attr("class", "unselected")
+                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+                    .attr("class", "selected")
+                    .attr("opacity", 1.0)
+                    .data();
+
+            } else {
+                myimage.attr("class", "selected").attr("opacity", 1.0);
+            }
+            div.value = value;
+            svg.property("value", value).dispatch("input");
+        }
+	
+	const brushselector = d3.brush().on("start brush end", brushselection);
+
+        svg.call(brush);
+	
+	
+	
+	
         const x2 = d3
             .scaleLinear()
             .domain(d3.extent(data, (d) => d.x))
@@ -420,7 +444,7 @@ SampleView = @htl("""
 	
 	var selection = 0;
 	
-		var height = 500;
+		var height = 300;
 		var width = 800;
 		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
 	
@@ -450,8 +474,8 @@ var myimage = svg.selectAll('image')
     .attr('xlink:href', d => d.img)
 	.attr("x", d => x(d.x))
 	.attr("y", d => y(d.y))
-    .attr('width', 30)
-    .attr('height', 30)
+    .attr('width', 50)
+    .attr('height', 50)
 	.attr('opacity',1)
 
 
@@ -664,9 +688,10 @@ round(otdd_initial,digits=2)
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
-# ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+# ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+# ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
+# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
-# ╠═a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╠═8a0319c9-51ac-4e99-a4d9-1c07bee83381
 # ╠═7b20f2d5-a2c7-4705-9576-f39cf4ca03f5
@@ -677,7 +702,6 @@ round(otdd_initial,digits=2)
 # ╠═1150fee9-a9a5-4158-be90-eb72385cf3d1
 # ╠═589be23b-fc9b-4c5b-9316-64ce3074a281
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
-# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
 # ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
