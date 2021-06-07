@@ -360,7 +360,7 @@ df[!,:final] = vcat(mnistfinal,fmnistfinal);
 # ╟─8feb1c33-ba6d-449a-8676-b1144d4d4312
 # ╠═a7db774c-363b-4a92-9c20-df4477c4a135
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
-# ╠═eaeff487-d56a-4806-b1e9-63e2e9c8ba5e
+# ╟─eaeff487-d56a-4806-b1e9-63e2e9c8ba5e
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
 # ╠═11238559-ee1f-4000-91f3-a8fda2947393
