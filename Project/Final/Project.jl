@@ -103,6 +103,9 @@ begin
 		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
 end;
 
+# ╔═╡ 0a4b5321-5013-4ddf-be7a-2ba10f7e8b65
+df
+
 # ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
 dfjson = arraytable(df)
 
@@ -528,8 +531,21 @@ end;
 # ╔═╡ 239deeeb-b34f-4057-9752-4d6f5e0b916d
 begin
 	df[!,:pe] = edges[!,:pe]
-	df[!,:ex] = edges[!,:edges_x]
-	df[!,:ey] = edges[!,:edges_y]
+	df[!,:source] = edges[!,:source]
+	df[!,:target] = edges[!,:target]
+	tx = []
+	ty = []
+	for i in 1:size(df)[1]
+		if df[i,:dataset] == "mnist"
+			push!(tx,df[df[i,:target],:x])
+			push!(ty,df[df[i,:target],:y])
+		else
+			push!(tx,df[df[i,:source],:x])
+			push!(ty,df[df[i,:source],:y])
+		end
+	end
+	df[!,:tx] = tx
+	df[!,:ty] = ty
 end;
 
 # ╔═╡ c5f10b93-4e80-49a5-9f95-fbc489449bde
@@ -609,13 +625,10 @@ var line = d3.line()
     .enter().append("path")
       .attr("d", d => line(d.values));
   
-	path.attr("stroke", (d,i)=>color(i))
-      .attr("stroke-width", 1.5)
+	path.attr("stroke","steelblue")
+      .attr("stroke-width", 0.5)
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round")
-	
-
-	
 	
         var myimage = svg
             .append("g")
@@ -627,7 +640,8 @@ var line = d3.line()
             .attr("y", (d) => y(d.y))
             .attr("width", 20)
             .attr("height", 20)
-            .attr("opacity", 1);
+            .attr("opacity", 1)
+			.attr("id", function(d, i) {  return "soruce" + d.source; });
 
         function brushed({ selection }) {
             let value = [];
@@ -637,10 +651,14 @@ var line = d3.line()
                 value = myimage
                     .attr("opacity", 0.3)
                     .attr("class", "unselected")
-                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+                    .filter(function(d) {
+						
+	return x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1;
+	})
                     .attr("class", "selected")
                     .attr("opacity", 1.0)
                     .data();
+				console.log(value)
 
                 var visible = plot2
                     .selectAll("image")
@@ -679,34 +697,6 @@ var line = d3.line()
             svg.property("value", value).dispatch("input");
         }
         const brush = d3.brush().on("start brush end", brushed);
-
-        svg.call(brush);
-
-	
-	
-	
-	function brushselection({ selection }) {
-            let value = [];
-            if (selection) {
-                const [[x0, y0], [x1, y1]] = selection;
-
-                var visible = plot2
-                    .selectAll("image")
-                    .attr("opacity", 0)
-                    .attr("class", "unselected")
-                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-                    .attr("class", "selected")
-                    .attr("opacity", 1.0)
-                    .data();
-
-            } else {
-                myimage.attr("class", "selected").attr("opacity", 1.0);
-            }
-            div.value = value;
-            svg.property("value", value).dispatch("input");
-        }
-	
-	const brushselector = d3.brush().on("start brush end", brushselection);
 
         svg.call(brush);
 	
@@ -759,7 +749,13 @@ json(nedges)
 # ╔═╡ 7f1c1a12-94b1-4128-82bf-26e9c0e172c5
 nedges[6]
 
+# ╔═╡ 32d943bc-e504-4929-b1d4-ce1882a690f8
+df[61,:]
+
 # ╔═╡ 9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
+
+
+# ╔═╡ 7b7cd9aa-81a1-4c8a-9f6a-f3627d2071a0
 
 
 # ╔═╡ Cell order:
@@ -778,6 +774,7 @@ nedges[6]
 # ╟─b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
 # ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
+# ╠═0a4b5321-5013-4ddf-be7a-2ba10f7e8b65
 # ╠═c315a543-e9be-4b79-8449-b9175c923bb8
 # ╠═c5f10b93-4e80-49a5-9f95-fbc489449bde
 # ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
@@ -813,4 +810,6 @@ nedges[6]
 # ╠═54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
 # ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
 # ╠═7f1c1a12-94b1-4128-82bf-26e9c0e172c5
+# ╠═32d943bc-e504-4929-b1d4-ce1882a690f8
 # ╠═9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
+# ╠═7b7cd9aa-81a1-4c8a-9f6a-f3627d2071a0
