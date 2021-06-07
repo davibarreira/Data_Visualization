@@ -535,19 +535,23 @@ begin
 	df[!,:target] = edges[!,:target]
 	tx = []
 	ty = []
+	tl = []
 	Ndf  = Int(size(df)[1]/2)
 	for i in 1:size(df)[1]
 		if df[i,:dataset] == "mnist"
 			push!(tx,df[df[i,:target]+Ndf,:x])
 			push!(ty,df[df[i,:target]+Ndf,:y])
+			push!(tl,df[df[i,:target]+Ndf,:label])
 		
 		else
 			push!(tx,df[df[i,:source],:x])
 			push!(ty,df[df[i,:source],:y])
+			push!(tl,df[df[i,:source],:label])
 		end
 	end
 	df[!,:tx] = tx
 	df[!,:ty] = ty
+	df[!,:ty] = tl
 end;
 
 # ╔═╡ c5f10b93-4e80-49a5-9f95-fbc489449bde
@@ -662,7 +666,6 @@ var line = d3.line()
                     .attr("class", "selected")
                     .attr("opacity", 1.0)
                     .data();
-				console.log(value)
 
                 var visible = plot2
                     .selectAll("image")
@@ -789,7 +792,7 @@ df
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
-# ╟─95063639-9e69-4bff-85e0-31e642be8a0a
+# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╠═8a0319c9-51ac-4e99-a4d9-1c07bee83381
