@@ -59,7 +59,7 @@ begin
 	fmnist_x = reshape(FashionMNIST.traintensor(Float64),28*28,:);
 	fmnist_y = FashionMNIST.trainlabels(1:size(fmnist_x, 2));
 
-	N = 100;
+	N = 40;
 	mnist_x  = mnist_x'[1:N,:];
 	mnist_y  = mnist_y[1:N];
 	fmnist_x = fmnist_x'[1:N,:];
@@ -102,6 +102,12 @@ begin
 		label  = vcat(mnist_y[1:N],fmnist_y[1:N]),
 		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
 end;
+
+# ╔═╡ 0a4b5321-5013-4ddf-be7a-2ba10f7e8b65
+df[1,:]
+
+# ╔═╡ 51c0d655-4e62-4664-a8fd-fbe9111d3806
+df[1+40,:]
 
 # ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
 dfjson = arraytable(df)
@@ -534,30 +540,21 @@ begin
 	ty = []
 	tl = []
 	Ndf  = Int(size(df)[1]/2)
-	
-	
-	f(x) = argmax(γ[x,:])
-	g(x) = argmax(γ[:,x])
-	mnistorigin = collect(1:N)
-	fmnistorigin = collect(1:N)
-	mnistfinal = f.(mnistorigin);
-	fmnistfinal = g.(fmnistorigin);
-	df[!,:origin] = vcat(mnistorigin,fmnistorigin)
-	df[!,:final] = vcat(mnistfinal,fmnistfinal);
 	for i in 1:size(df)[1]
 		if df[i,:dataset] == "mnist"
-			push!(tx,df[df[i,:final]+Ndf,:x])
-			push!(ty,df[df[i,:final]+100,:y])
-			push!(tl,df[df[i,:final]+Ndf,:label])
+			push!(tx,df[df[i,:target]+Ndf,:x])
+			push!(ty,df[df[i,:target]+Ndf,:y])
+			push!(tl,df[df[i,:target]+Ndf,:label])
+		
 		else
-			push!(tx,df[df[i,:origin],:x])
-			push!(ty,df[df[i,:origin],:y])
-			push!(tl,df[df[i,:origin],:label])
+			push!(tx,df[df[i,:source],:x])
+			push!(ty,df[df[i,:source],:y])
+			push!(tl,df[df[i,:source],:label])
 		end
 	end
 	df[!,:tx] = tx
 	df[!,:ty] = ty
-	df[!,:tl] = tl
+	df[!,:ty] = tl
 end;
 
 # ╔═╡ c5f10b93-4e80-49a5-9f95-fbc489449bde
@@ -768,12 +765,6 @@ df
 # ╔═╡ 7b7cd9aa-81a1-4c8a-9f6a-f3627d2071a0
 
 
-# ╔═╡ ab01e788-83a1-40e6-a7fe-887ae9a2ff10
-
-
-# ╔═╡ f755bab0-7288-45fd-a589-6399d374c796
-
-
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
@@ -790,6 +781,8 @@ df
 # ╟─b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
 # ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
+# ╠═0a4b5321-5013-4ddf-be7a-2ba10f7e8b65
+# ╠═51c0d655-4e62-4664-a8fd-fbe9111d3806
 # ╠═c315a543-e9be-4b79-8449-b9175c923bb8
 # ╠═c5f10b93-4e80-49a5-9f95-fbc489449bde
 # ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
@@ -825,8 +818,6 @@ df
 # ╠═54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
 # ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
 # ╠═7f1c1a12-94b1-4128-82bf-26e9c0e172c5
-# ╟─32d943bc-e504-4929-b1d4-ce1882a690f8
+# ╠═32d943bc-e504-4929-b1d4-ce1882a690f8
 # ╠═9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
 # ╠═7b7cd9aa-81a1-4c8a-9f6a-f3627d2071a0
-# ╠═ab01e788-83a1-40e6-a7fe-887ae9a2ff10
-# ╠═f755bab0-7288-45fd-a589-6399d374c796
