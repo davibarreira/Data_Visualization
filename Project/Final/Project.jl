@@ -103,6 +103,9 @@ begin
 		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
 end;
 
+# ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
+dfjson = arraytable(df)
+
 # ╔═╡ 29ac65a4-a1c1-47a8-a691-be90f988709f
 md"""
 Dataframe to Json to pass to JavaScript
@@ -178,6 +181,140 @@ This will allow to create more interactivity.
 Still on progress...
 """
 
+# ╔═╡ 7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+Scatter = @htl("""
+	<div>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+	<script>
+	let cell = currentScript.closest("pluto-cell")
+	cell.style.width = "1000px"
+	</script>
+    <div id="myvis"></div>
+
+    <script id="createplot">
+	var div = currentScript.parentElement
+	
+	var selection = 0;
+	
+		var height = 500;
+		var width = 460;
+		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
+	
+		const data = JSON.parse($(dfjson))
+	
+		const svg = d3
+			.select("#myvis")
+			.append("svg")
+			.attr("width", width*2 + margin.left + margin.right)
+    		.attr("height", height + margin.top + margin.bottom)
+	
+	svg.append("rect")
+    .attr("x",0)
+    .attr("y",0)
+    .attr("height",  height + margin.top + margin.bottom)
+    .attr("width", width + margin.left)
+    .style("fill", "#F2F3F4")
+	.attr("stroke","grey")
+	
+	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
+    .range([0, width - 2*margin.right]);
+
+	const y = d3.scaleLinear()
+	   .domain(d3.extent(data, d => d.y)).nice()
+	   .range([height - margin.bottom, margin.top]);
+	
+	const color = d3.scaleOrdinal()
+    .domain(["mnist", "fmnist"])
+    .range([ "#440154ff", "#21908dff"]);
+	
+	
+var myimage = svg.append("g").selectAll('image')
+	.data(data)
+	.join('image')
+    .attr('xlink:href', d => d.img)
+	.attr("x", d => x(d.x))
+	.attr("y", d => y(d.y))
+    .attr('width', 30)
+    .attr('height', 30)
+	.attr('opacity',1)
+
+
+	function brushed({selection}) {
+	let value = [];
+    if (selection) {
+      const [[x0, y0], [x1, y1]] = selection;
+	    
+      value = myimage.attr('opacity',0.3)
+		.attr("class","unselected")
+        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+		.attr("class","selected")
+		.attr('opacity',1.0).data();
+		
+		plot2.selectAll("image").attr("opacity",0).attr("class","unselected")
+		.filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+		.attr("class","selected")
+		.attr('opacity',1.0);
+		
+    } else {
+	  myimage.attr("class","selected").attr('opacity',1.0);
+    }
+	div.value = value;
+    svg.property("value", value).dispatch("input");
+  }
+	const brush = d3.brush()
+      .on("start brush end", brushed);
+	
+	
+	//svg.call(d3.zoom().extent([[0, 0], [width, height]]).translateExtent([[0, 0], [width, height]])
+    //.scaleExtent([1, 8]).on("zoom", zoomed)).on("touchstart.zoom", null).on("mousedown.zoom", null)
+	//.on("dblclick.zoom", null);
+
+  function zoomed({transform}) {
+    myimage.attr("transform", transform);
+  }
+	svg.call(brush);
+	
+	
+	const x2 = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
+    .range([margin.left, width - margin.right]);
+
+	const y2 = d3.scaleLinear()
+	   .domain(d3.extent(data, d => d.y)).nice()
+	   .range([height - margin.bottom, margin.top]);
+	
+	
+	
+	svg.append("rect").attr('transform', `translate(\${width},0)`)
+    .attr("x",0)
+    .attr("y",0)
+    .attr("height",  height + margin.top + margin.bottom)
+    .attr("width", width + margin.left)
+    .style("fill", "#F2F3F4")
+	.attr("stroke","grey")
+	
+var plot2 = svg.append("g").attr('transform', `translate(\${width},0)`).attr("class","plot2")
+
+var plt = plot2.selectAll(".selected")
+	.data(data)
+	.join('image')
+    .attr('xlink:href', d => d.img)
+	.attr("x", d => x2(d.x))
+	.attr("y", d => y2(d.y))
+    .attr('width', 30)
+    .attr('height', 30)
+	.attr('opacity',1)
+
+	
+	div.value = svg.selectAll("selected")
+	
+	
+    </script>
+	</div>
+""")
+
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 GetSelected(text="Get Selection") = @htl("""
 	<div id="ok">
@@ -218,103 +355,6 @@ MNIST.convert2image(mnist_x[2,:])
 
 # ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
 @bind savetransformation Button("Save Modifications")
-
-# ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
-begin
-	savetransformation
-	dfjson = arraytable(df)
-end
-
-# ╔═╡ 7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
-Scatter = @htl("""
-	<div>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-	<script>
-	let cell = currentScript.closest("pluto-cell")
-	cell.style.width = "1000px"
-	</script>
-    <div id="myvis"></div>
-
-    <script id="createplot">
-	var div = currentScript.parentElement
-	
-	var selection = 0;
-	
-		var height = 500;
-		var width = 800;
-		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
-	
-		const data = JSON.parse($(dfjson))
-	
-		const svg = d3
-			.select("#myvis")
-			.append("svg")
-			.attr("width", width + margin.left + margin.right)
-    		.attr("height", height + margin.top + margin.bottom)
-	
-	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
-    .range([margin.left, width - margin.right]);
-
-	const y = d3.scaleLinear()
-	   .domain(d3.extent(data, d => d.y)).nice()
-	   .range([height - margin.bottom, margin.top]);
-	
-	const color = d3.scaleOrdinal()
-    .domain(["mnist", "fmnist"])
-    .range([ "#440154ff", "#21908dff"]);
-	
-	
-var myimage = svg.selectAll('image')
-	.data(data)
-	.join('image')
-    .attr('xlink:href', d => d.img)
-	.attr("x", d => x(d.x))
-	.attr("y", d => y(d.y))
-    .attr('width', 30)
-    .attr('height', 30)
-	.attr('opacity',1)
-
-
-	function brushed({selection}) {
-	let value = [];
-    if (selection) {
-      const [[x0, y0], [x1, y1]] = selection;
-	    
-      value = myimage.attr('opacity',0.3)
-		.attr("class","unselected")
-        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-		.attr("class","selected")
-		.attr('opacity',1.0).data();
-    } else {
-	  myimage.attr("class","selected").attr('opacity',1.0);
-    }
-	div.value = value;
-    svg.property("value", value).dispatch("input");
-  }
-	const brush = d3.brush()
-      .on("start brush end", brushed);
-	
-	
-	svg.call(d3.zoom()
-      	.extent([[0, 0], [width, height]])
-		.translateExtent([[0, 0], [width, height]])
-      	.scaleExtent([1, 8])
-      	.on("zoom", zoomed)).on("touchstart.zoom", null).on("mousedown.zoom", null)
-		.on("dblclick.zoom", null);
-
-  function zoomed({transform}) {
-    myimage.attr("transform", transform);
-  }
-	svg.call(brush);
-
-	
-	div.value = svg.selectAll("selected")
-    </script>
-	</div>
-""")
 
 # ╔═╡ f6259df8-8fee-48d0-b5ec-04e0dbde1250
 
@@ -423,27 +463,10 @@ var myimage = svg.selectAll('image')
 	</div>
 """)
 
-# ╔═╡ fef062bf-b1e8-4e9e-9f45-0f0c86622d01
-
-
-# ╔═╡ 3865476d-dc2d-450d-8676-e8833b1db057
-
-
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
 ### Auxiliary Functions
 """
-
-# ╔═╡ 530bc707-21f7-451f-9fee-6b3430759e0e
-	# var rec = svg.selectAll('rect')
-	# .data(data)
-	# .join('rect')
-	# .attr("x", d => x(d.x))
-	# .attr("y", d => y(d.y))
-	# .attr('width', 30)
-	# .attr('height', 30)
-	# .style("fill", function(d) { return color(d.dataset)} )
-	# .attr('opacity',0.2)
 
 # ╔═╡ 70a5b623-418e-4b91-a1b2-dd88a26d5756
 res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
@@ -586,6 +609,9 @@ round(otdd_initial,digits=2)
 # ╔═╡ f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
 
 
+# ╔═╡ ad4fe979-f23e-4a68-a69b-b98d3406c90b
+
+
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
@@ -622,10 +648,7 @@ round(otdd_initial,digits=2)
 # ╠═589be23b-fc9b-4c5b-9316-64ce3074a281
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╠═95063639-9e69-4bff-85e0-31e642be8a0a
-# ╠═fef062bf-b1e8-4e9e-9f45-0f0c86622d01
-# ╠═3865476d-dc2d-450d-8676-e8833b1db057
 # ╠═835d761d-bfe5-45f6-919d-d0c03711a5c8
-# ╠═530bc707-21f7-451f-9fee-6b3430759e0e
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
 # ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
 # ╠═583923b6-f08a-4074-94ff-2fc480e16277
@@ -633,3 +656,4 @@ round(otdd_initial,digits=2)
 # ╠═6c333ac9-22a6-4353-a4f1-67bebdaadc24
 # ╠═1b066cf7-bf1b-4445-9e58-275679838973
 # ╠═f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
+# ╠═ad4fe979-f23e-4a68-a69b-b98d3406c90b
