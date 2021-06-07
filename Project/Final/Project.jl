@@ -202,6 +202,36 @@ c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
     "config"= {"axis"= {"grid"= true, "tickBand"= "extent"}}
 );
 
+# ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
+# begin
+# 	mnistselection = []
+# 	fmnistselection = []
+# 	mnistselecimg = []
+# 	fmnistselecimg = []
+# 	for i in finalselection
+# 		if length(finalselection) > 0
+# 			if i["dataset"] == "mnist"
+# 				push!(mnistselection,mnist_x[i["id"],:])
+# 				push!(mnistselecimg, MNIST.convert2image(mnist_x[i["id"],:]))
+# 			else
+# 				push!(fmnistselection,fmnist_x[i["id"],:])
+# 				push!(fmnistselecimg, MNIST.convert2image(fmnist_x[i["id"],:]))
+# 			end
+# 		end
+# 	end
+# end
+
+# ╔═╡ f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
+md"""
+#### Finals Picks to be Augumented:
+"""
+
+# ╔═╡ 8804def3-7c9c-4742-b643-de43f95b2b16
+
+
+# ╔═╡ 803bd19c-3751-4753-95c7-307c2be89074
+[fmnistselecimg]
+
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 GetSelected(text="Select Initial Samples") = @htl("""
 	<div id="ok">
@@ -246,26 +276,30 @@ GetFinalSelection(text="Final Picks") = @htl("""
 # ╔═╡ e314152b-9f97-43cd-a164-8833d13c1eb0
 @bind finalselection GetFinalSelection()
 
-# ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
+# ╔═╡ e4aa0577-dfc6-4159-a00e-09adbc8c8078
 begin
-	mnistselection = []
-	fmnistselection = []
-	mnistselecimg = []
-	fmnistselecimg = []
+	mnists=[]
+	mnistsimg=[]
+	fmnists=[]
+	fmnistsimg=[]
 	for i in finalselection
-		if i["dataset"] == "mnist"
-			push!(mnistselection,mnist_x[i["id"],:])
-			push!(mnistselecimg, MNIST.convert2image(mnist_x[i["id"],:]))
-		else
-			push!(fmnistselection,fmnist_x[i["id"],:])
-			push!(fmnistselecimg, MNIST.convert2image(fmnist_x[i["id"],:]))
+		if length(finalselection) > 0
+			if i["dataset"] == "mnist"
+				push!(mnists,mnist_x[i["source"],:])
+				push!(mnistsimg,MNIST.convert2image(mnist_x[i["source"],:]))
+			else
+				push!(fmnists,fmnist_x[i["source"],:])
+				push!(fmnistsimg,MNIST.convert2image(fmnist_x[i["source"],:]))
+			end
 		end
 	end
-	[mnistselecimg]
 end
 
-# ╔═╡ 803bd19c-3751-4753-95c7-307c2be89074
-[fmnistselecimg]
+# ╔═╡ 7549332e-a5a8-4dfb-b36d-423da82b9d98
+[mnistsimg]
+
+# ╔═╡ 65e421d2-0508-4623-b62e-43c1dadca714
+[fmnistsimg]
 
 # ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
 @bind transformations Select(["none","equalization", "gamma"])
@@ -854,13 +888,18 @@ df
 # ╟─3770fcc8-a00a-4b9f-9dad-687916e0257a
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─b3e7ad58-ac03-463c-9df9-bdf5872a23ed
-# ╠═a9cb0024-ae23-4fc9-81d8-4ea335884900
-# ╠═e314152b-9f97-43cd-a164-8833d13c1eb0
+# ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
+# ╟─e314152b-9f97-43cd-a164-8833d13c1eb0
 # ╟─95063639-9e69-4bff-85e0-31e642be8a0a
-# ╟─839f0087-5890-462d-8507-70b3c3db797d
-# ╠═a3feade2-822e-43eb-8a02-5b67985af4c0
 # ╟─07120a08-226b-4907-87c7-f5d63af616a7
-# ╟─803bd19c-3751-4753-95c7-307c2be89074
+# ╟─f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
+# ╟─7549332e-a5a8-4dfb-b36d-423da82b9d98
+# ╟─65e421d2-0508-4623-b62e-43c1dadca714
+# ╠═e4aa0577-dfc6-4159-a00e-09adbc8c8078
+# ╠═8804def3-7c9c-4742-b643-de43f95b2b16
+# ╠═803bd19c-3751-4753-95c7-307c2be89074
+# ╟─839f0087-5890-462d-8507-70b3c3db797d
+# ╟─a3feade2-822e-43eb-8a02-5b67985af4c0
 # ╠═3aed32f1-f15c-4672-8641-e52c9a7c7671
 # ╠═b2aafd47-c5c1-4ada-8d48-bfea30292d20
 # ╠═bf62c705-49cc-4545-8bdf-316a61c9a5c0
