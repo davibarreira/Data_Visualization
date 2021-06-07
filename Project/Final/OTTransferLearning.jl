@@ -41,9 +41,6 @@ begin
     using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP, ImageContrastAdjustment, ImageCore, ImageTransformations, Rotations
 end
 
-# ╔═╡ 1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
-include("otdd.jl")
-
 # ╔═╡ 2ffddf10-bd51-11eb-12cb-f1add38b47fb
 md"""
 # Dataset Transferability Analysis
@@ -54,6 +51,9 @@ A visual tool for improving transfer learning via data augumentation and Optimal
 md"""
 ### Installing and Importing Packages and Data
 """
+
+# ╔═╡ 6792ed97-4518-4eaf-9a99-a4998be083cf
+
 
 # ╔═╡ e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
 begin
@@ -308,8 +308,14 @@ selected
 # ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
 @bind transformations Select(["none","equalization", "gamma"])
 
+# ╔═╡ b2aafd47-c5c1-4ada-8d48-bfea30292d20
+@bind choosedataset Select(["mnist","fmnist"])
+
 # ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
 @bind savetransformation Button("Save Modifications")
+
+# ╔═╡ 2acb91a2-5476-4ddb-9b9c-0a4176eb64df
+
 
 # ╔═╡ d468ee56-e522-421b-91b3-66135b0e8683
 begin
@@ -448,9 +454,13 @@ end
 function ApplyEqualization(img_ids,dataset)
     for id in img_ids
         if dataset == "mnist"
-            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applyequalization(mnist_x[id,:])))
+			mimg = applyequalization(mnist_x[id,:])
+			mnist_x[id,:] = mimg
+            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(mimg))
         else
-            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applyequalization(fmnist_x[id-N,:])))
+			mimg = applyequalization(fmnist_x[id-N,:])
+			fmnist_x[id-N,:] = mimg
+            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applyequalization(mimg)))
         end
     end
 end
@@ -464,14 +474,30 @@ end
 
 # ╔═╡ 1150fee9-a9a5-4158-be90-eb72385cf3d1
 let
-	if transformations == "none"
-		MNIST.convert2image(fmnist_x[selection_fmnist[1]-N,:])
-	elseif transformations == "equalization"
-		mimg = applyequalization(fmnist_x[selection_fmnist[1]-N,:])
-		MNIST.convert2image(mimg)
-	else
-		mimg = applygamma(fmnist_x[selection_fmnist[1]-N,:])
-		MNIST.convert2image(mimg)
+	if choosedataset == "fmnist"
+		if length(selection_fmnist) == 0
+			"No selections"
+		elseif transformations == "none"
+			MNIST.convert2image(fmnist_x[selection_fmnist[1]-N,:])
+		elseif transformations == "equalization"
+			mimg = applyequalization(fmnist_x[selection_fmnist[1]-N,:],200)
+			MNIST.convert2image(mimg)
+		elseif transformations == "gamma"
+			mimg = applygamma(fmnist_x[selection_fmnist[1]-N,:])
+			MNIST.convert2image(mimg)
+		end
+	elseif choosedataset == "mnist"
+		if length(selection_mnist) == 0
+			"No selections"
+		elseif transformations == "none"
+			MNIST.convert2image(mnist_x[selection_mnist[1],:])
+		elseif transformations == "equalization"
+			mimg = applyequalization(mnist_x[selection_mnist[1],:],200)
+			MNIST.convert2image(mimg)
+		elseif transformations == "gamma"
+			mimg = applygamma(mnist_x[selection_mnist[1],:])
+			MNIST.convert2image(mimg)
+		end
 	end
 end
 
@@ -479,9 +505,13 @@ end
 function ApplyGamma(img_ids,dataset)
     for id in img_ids
         if dataset == "mnist"
-            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applygamma(mnist_x[id,:])))
+			mimg = applygamma(mnist_x[id,:])
+			mnist_x[id,:] = mimg
+            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
         else
-            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applygamma(fmnist_x[id-N,:])))
+			mimg = applyequalization(fmnist_x[id-N,:])
+			fmnist_x[id-N,:] = mimg
+            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
         end
     end
 end
@@ -490,21 +520,54 @@ end
 let
 	savetransformation
 	if transformations == "gamma"
-		ApplyGamma(selection_fmnist, "fmnist")
+		if length(selection_fmnist) > 0
+			ApplyGamma(selection_fmnist, "fmnist")
+		end
 	elseif transformations == "equalization"
-		ApplyEqualization(selection_fmnist, "fmnist")
+		if length(selection_fmnist) > 0
+			ApplyEqualization(selection_fmnist, "fmnist")
+		end
 	end
 end
 
 # ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
+function ingredients(path::String)
+	# this is from the Julia source code (evalfile in base/loading.jl)
+	# but with the modification that it returns the module instead of the last object
+	name = Symbol(basename(path))
+	m = Module(name)
+	Core.eval(m,
+        Expr(:toplevel,
+             :(eval(x) = $(Expr(:core, :eval))($name, x)),
+             :(include(x) = $(Expr(:top, :include))($name, x)),
+             :(include(mapexpr::Function, x) = $(Expr(:top, :include))(mapexpr, $name, x)),
+             :(include($path))))
+	m
+end
 
+# ╔═╡ 1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
+# include("otdd.jl")
+ot = ingredients("./otdd.jl");
+
+# ╔═╡ 6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
+W = ot.OTDD._getW(mnist_x,mnist_y, fmnist_x, fmnist_y);
+
+# ╔═╡ 9098a67f-de1f-4c06-b8ab-266ff0372231
+C, γ, otdd_initial = ot.OTDD.otdd(mnist_x,mnist_y, fmnist_x, fmnist_y, W=W);
+
+# ╔═╡ e7ab7253-70b7-4ad8-8c49-4910a2aa68d0
+round(otdd_initial,digits=2)
 
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
 # ╠═8529c382-f72f-44f7-8ccd-ce68ab03776e
 # ╠═1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
+# ╠═6792ed97-4518-4eaf-9a99-a4998be083cf
 # ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
+# ╠═6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
+# ╠═9098a67f-de1f-4c06-b8ab-266ff0372231
+# ╠═e7ab7253-70b7-4ad8-8c49-4910a2aa68d0
 # ╟─b3fd7749-18ef-4033-9e2d-431ee284c11b
 # ╟─4a741e16-7e80-43cb-bfe3-63ae442d61f1
 # ╟─75b36234-7d5b-4527-9274-2239046b556a
@@ -524,8 +587,10 @@ end
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╠═7b20f2d5-a2c7-4705-9576-f39cf4ca03f5
 # ╠═3aed32f1-f15c-4672-8641-e52c9a7c7671
+# ╠═b2aafd47-c5c1-4ada-8d48-bfea30292d20
 # ╠═bf62c705-49cc-4545-8bdf-316a61c9a5c0
 # ╠═1150fee9-a9a5-4158-be90-eb72385cf3d1
+# ╠═2acb91a2-5476-4ddb-9b9c-0a4176eb64df
 # ╠═589be23b-fc9b-4c5b-9316-64ce3074a281
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╠═95063639-9e69-4bff-85e0-31e642be8a0a

@@ -11,6 +11,7 @@ using SparseArrays
 using Tulip
 using UMAP
 
+export _fit_MvNormals, _getW, otdd
 
 """
     _fit_MvNormals(X,y)
@@ -52,7 +53,7 @@ Calculates the Optimal Transport Dataset Distance between
 datasets D1 and D2, using metric dx between features
 distance. Note that `dx` must be a `PreMetric` from `Distances.jl`.
 """
-function otdd(X1, y1, X2, y2; ε = 1, dx=SqEuclidean(), W = nothing)
+function otdd(X1, y1, X2, y2; ε = 0.05, dx=SqEuclidean(), W = nothing)
     if W === nothing
         α1 = _fit_MvNormals(X1, y1)
         α2 = _fit_MvNormals(X2, y2)
@@ -66,7 +67,7 @@ function otdd(X1, y1, X2, y2; ε = 1, dx=SqEuclidean(), W = nothing)
     end
     
     C = pairwise(dx, X1, X2, dims=1);
-    for (i,j) in Iterators.product(1:N,1:N)
+    for (i,j) in Iterators.product(1:length(y1),1:length(y2))
         C[i,j] = sqrt(C[i,j] + W[y1[i]+1,y2[j]+1])
     end
     
