@@ -226,12 +226,6 @@ md"""
 #### Finals Picks to be Augumented:
 """
 
-# ╔═╡ 8804def3-7c9c-4742-b643-de43f95b2b16
-
-
-# ╔═╡ 803bd19c-3751-4753-95c7-307c2be89074
-[fmnistselecimg]
-
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 GetSelected(text="Select Initial Samples") = @htl("""
 	<div id="ok">
@@ -278,18 +272,28 @@ GetFinalSelection(text="Final Picks") = @htl("""
 
 # ╔═╡ e4aa0577-dfc6-4159-a00e-09adbc8c8078
 begin
+	mnistid=[]
+	fmnistid=[]
 	mnists=[]
 	mnistsimg=[]
 	fmnists=[]
 	fmnistsimg=[]
+	selectarray =[]
+	selectimg =[]
 	for i in finalselection
 		if length(finalselection) > 0
 			if i["dataset"] == "mnist"
+				push!(mnistid,i["id"])
 				push!(mnists,mnist_x[i["source"],:])
 				push!(mnistsimg,MNIST.convert2image(mnist_x[i["source"],:]))
+				push!(selectarray,mnist_x[i["source"],:])
+				push!(selectimg,MNIST.convert2image(mnist_x[i["source"],:]))
 			else
+				push!(fmnistid,i["id"])
 				push!(fmnists,fmnist_x[i["source"],:])
 				push!(fmnistsimg,MNIST.convert2image(fmnist_x[i["source"],:]))
+				push!(selectarray,fmnist_x[i["source"],:])
+				push!(selectimg,MNIST.convert2image(fmnist_x[i["source"],:]))
 			end
 		end
 	end
@@ -304,14 +308,11 @@ end
 # ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
 @bind transformations Select(["none","equalization", "gamma"])
 
-# ╔═╡ b2aafd47-c5c1-4ada-8d48-bfea30292d20
-@bind choosedataset Select(["mnist","fmnist"])
-
 # ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
 @bind savetransformation Button("Save Modifications")
 
-# ╔═╡ f6259df8-8fee-48d0-b5ec-04e0dbde1250
-
+# ╔═╡ e13b971a-3575-40b4-90d0-4dbae53e84ef
+fmnistid
 
 # ╔═╡ d468ee56-e522-421b-91b3-66135b0e8683
 begin
@@ -459,36 +460,30 @@ function applygamma(datasetarray, gamma = 2)
     return reshape(convert(Array{Float64}, mimg),28*28)
 end
 
-# ╔═╡ 1150fee9-a9a5-4158-be90-eb72385cf3d1
-let
-	if length(selected)>0
-		if choosedataset == "fmnist"
-			if length(selection_fmnist) == 0
-				"No selections"
-			elseif transformations == "none"
-				MNIST.convert2image(fmnist_x[selection_fmnist[1]-N,:])
+# ╔═╡ 7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
+begin
+	augimg =[]
+	augarr =[]
+	if length(finalselection)>0
+		for i in 1:length(finalselection)
+			if transformations == "none"
+				push!(augarr, selectarray[i])
+				push!(augimg, selectimg[i])
 			elseif transformations == "equalization"
-				mimg = applyequalization(fmnist_x[selection_fmnist[1]-N,:],200)
-				MNIST.convert2image(mimg)
+				mimg = applyequalization(selectarray[i])
+				push!(augarr, mimg)
+				push!(augimg,MNIST.convert2image(mimg))
 			elseif transformations == "gamma"
-				mimg = applygamma(fmnist_x[selection_fmnist[1]-N,:])
-				MNIST.convert2image(mimg)
-			end
-		elseif choosedataset == "mnist"
-			if length(selection_mnist) == 0
-				"No selections"
-			elseif transformations == "none"
-				MNIST.convert2image(mnist_x[selection_mnist[1],:])
-			elseif transformations == "equalization"
-				mimg = applyequalization(mnist_x[selection_mnist[1],:],200)
-				MNIST.convert2image(mimg)
-			elseif transformations == "gamma"
-				mimg = applygamma(mnist_x[selection_mnist[1],:])
-				MNIST.convert2image(mimg)
+				mimg = applygamma(selectarray[i])
+				push!(augarr, mimg)
+				push!(augimg,MNIST.convert2image(mimg))
 			end
 		end
 	end
 end
+
+# ╔═╡ 86522271-f06a-493e-a261-6c1afc6076f4
+augimg
 
 # ╔═╡ 57103a08-fefc-4c8c-85cb-a054de9edc5b
 function ApplyGamma(img_ids,dataset)
@@ -510,26 +505,19 @@ end
 # ╔═╡ 589be23b-fc9b-4c5b-9316-64ce3074a281
 let
 	savetransformation
-	if choosedataset == "fmnist"
+	if length(mnistid)>0
 		if transformations == "gamma"
-			if length(selection_fmnist) > 0
-				ApplyGamma(selection_fmnist, "fmnist")
-
-			end
+			ApplyGamma(mnistid, "mnist")
 		elseif transformations == "equalization"
-			if length(selection_fmnist) > 0
-				ApplyEqualization(selection_fmnist, "fmnist")
-			end
+			ApplyEqualization(mnistid, "mnist")
 		end
-	elseif choosedataset == "mnist"
+	end
+		
+	if length(fmnistid)>0
 		if transformations == "gamma"
-			if length(selection_mnist) > 0
-				ApplyGamma(selection_mnist, "mnist")
-			end
+			ApplyGamma(fmnistid, "fmnist")
 		elseif transformations == "equalization"
-			if length(selection_mnist) > 0
-				ApplyEqualization(selection_mnist, "mnist")
-			end
+			ApplyEqualization(fmnistid, "fmnist")
 		end
 	end
 end
@@ -895,18 +883,16 @@ df
 # ╟─f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
 # ╟─7549332e-a5a8-4dfb-b36d-423da82b9d98
 # ╟─65e421d2-0508-4623-b62e-43c1dadca714
-# ╠═e4aa0577-dfc6-4159-a00e-09adbc8c8078
-# ╠═8804def3-7c9c-4742-b643-de43f95b2b16
-# ╠═803bd19c-3751-4753-95c7-307c2be89074
+# ╟─e4aa0577-dfc6-4159-a00e-09adbc8c8078
 # ╟─839f0087-5890-462d-8507-70b3c3db797d
 # ╟─a3feade2-822e-43eb-8a02-5b67985af4c0
-# ╠═3aed32f1-f15c-4672-8641-e52c9a7c7671
-# ╠═b2aafd47-c5c1-4ada-8d48-bfea30292d20
-# ╠═bf62c705-49cc-4545-8bdf-316a61c9a5c0
-# ╠═f6259df8-8fee-48d0-b5ec-04e0dbde1250
-# ╠═1150fee9-a9a5-4158-be90-eb72385cf3d1
-# ╠═589be23b-fc9b-4c5b-9316-64ce3074a281
-# ╠═d468ee56-e522-421b-91b3-66135b0e8683
+# ╟─3aed32f1-f15c-4672-8641-e52c9a7c7671
+# ╟─86522271-f06a-493e-a261-6c1afc6076f4
+# ╟─7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
+# ╟─bf62c705-49cc-4545-8bdf-316a61c9a5c0
+# ╟─e13b971a-3575-40b4-90d0-4dbae53e84ef
+# ╟─589be23b-fc9b-4c5b-9316-64ce3074a281
+# ╟─d468ee56-e522-421b-91b3-66135b0e8683
 # ╠═835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
 # ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
