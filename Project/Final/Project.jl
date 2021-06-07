@@ -536,7 +536,10 @@ end;
 edjson = arraytable(edges)
 
 # ╔═╡ 2b880632-e9d0-40f8-8231-315ad2abc6b0
-nedges = [Dict(edges[i,:source] => [Dict("ex"=>edges[i,:edges_x],"ey"=>edges[i,:edges_y]),
+# nedges =[Dict(edges[i,:source] => Dict("values"=> [Dict("ex"=>edges[i,:edges_x],"ey"=>edges[i,:edges_y]),
+# 			Dict("ex"=>edges[i+1,:edges_x],"ey"=>edges[i+1,:edges_y])]))
+# 			for i in 1:2:size(edges)[1]]
+nedges =[Dict("values"=> [Dict("ex"=>edges[i,:edges_x],"ey"=>edges[i,:edges_y]),
 			Dict("ex"=>edges[i+1,:edges_x],"ey"=>edges[i+1,:edges_y])])
 			for i in 1:2:size(edges)[1]]
 
@@ -564,6 +567,7 @@ Scatter = @htl("""
 
         const data = JSON.parse($(dfjson));
 		const edges = JSON.parse($(json(nedges)));
+	
 
         const svg = d3
             .select("#myvis")
@@ -594,6 +598,25 @@ Scatter = @htl("""
         const color = d3.scaleOrdinal().domain(["mnist", "fmnist"]).range(["#440154ff", "#21908dff"]);
 		
 
+var line = d3.line()
+    		.x(d => x(d.ex))
+    		.y(d => y(d.ey))
+	
+	
+	const path = svg.append("g")
+    .selectAll("path")
+    .data(edges)
+    .enter().append("path")
+      .attr("d", d => line(d.values));
+  
+	path.attr("stroke", (d,i)=>color(i))
+      .attr("stroke-width", 1.5)
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-linecap", "round")
+	
+
+	
+	
         var myimage = svg
             .append("g")
             .selectAll("image")
@@ -733,6 +756,12 @@ Scatter = @htl("""
 # ╔═╡ 54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
 json(nedges)
 
+# ╔═╡ 7f1c1a12-94b1-4128-82bf-26e9c0e172c5
+nedges[6]
+
+# ╔═╡ 9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
+
+
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
@@ -759,7 +788,7 @@ json(nedges)
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
 # ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
-# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
+# ╟─95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╠═8a0319c9-51ac-4e99-a4d9-1c07bee83381
@@ -783,3 +812,5 @@ json(nedges)
 # ╠═564c6127-b38b-4773-baa8-75e7a17dd677
 # ╠═54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
 # ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
+# ╠═7f1c1a12-94b1-4128-82bf-26e9c0e172c5
+# ╠═9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
