@@ -661,10 +661,58 @@ C, γ, otdd_initial = ot.OTDD.otdd(mnist_x,mnist_y, fmnist_x, fmnist_y, W=W);
 round(otdd_initial,digits=2)
 
 # ╔═╡ f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
+"""
+    CreateEdges(μ,ν,γ)
+Creates the edges for plotting.
+μ and ν correspond to the positions of the mass
+of the distributions.
+"""
+function CreateEdges(μ, ν, γ; ewfilter=0)
+    edges = Array{Float64}(undef, 0, 2)
+    pe    = []
+    source    = []
+    target    = []
+    for i in 1:size(μ)[1], j in 1:size(ν)[1]
+        edges  = vcat(edges,[μ[i,1],μ[i,2]]')
+        edges  = vcat(edges,[ν[j,1],ν[j,2]]')
+        pe     = vcat(pe,string([i,j]))
+        pe     = vcat(pe,string([i,j]))
+        source = vcat(source,i)
+        source = vcat(source,i)
+        target = vcat(target,j)
+        target = vcat(target,j)
+    end
+    df = DataFrame(edges_x=edges[:,1],edges_y = edges[:,2],pe=pe, source=source, target=target);
+    edge_w = []
+    for i in 1:size(γ)[1], j in 1:size(γ)[1]
+        edge_w = vcat(edge_w,γ[i,j])
+        edge_w = vcat(edge_w,γ[i,j])
+    end
+    df[!,"ew"] = edge_w./maximum(edge_w);
+    
+    filter = ewfilter
+    df = df[df[:,:ew] .>= filter,:];
+    df[!,:id] .= 1:size(df)[1];
+    return df
+end
 
 
 # ╔═╡ ad4fe979-f23e-4a68-a69b-b98d3406c90b
+function getlargerew(edges, n=1)
+	return combine(groupby(edges, :source)) do sdf
+		first(sort(sdf,:ew; rev=true),n)
+	end
+end
 
+# ╔═╡ 564c6127-b38b-4773-baa8-75e7a17dd677
+begin
+	d_mnist  = Matrix(df[df[:,:dataset].=="mnist",[:x,:y]])
+	d_fmnist = Matrix(df[df[:,:dataset].=="fmnist",[:x,:y]]);
+	edges = getlargerew(CreateEdges(d_mnist, d_fmnist, γ, ewfilter=0.1),2);
+end;
+
+# ╔═╡ 54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
+edges
 
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
@@ -711,3 +759,5 @@ round(otdd_initial,digits=2)
 # ╠═1b066cf7-bf1b-4445-9e58-275679838973
 # ╠═f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
 # ╠═ad4fe979-f23e-4a68-a69b-b98d3406c90b
+# ╠═564c6127-b38b-4773-baa8-75e7a17dd677
+# ╠═54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
