@@ -189,18 +189,21 @@ This will allow to create more interactivity.
 Still on progress...
 """
 
+# ╔═╡ 3770fcc8-a00a-4b9f-9dad-687916e0257a
+@bind markpicker Select(["Images","Circles"])
+
 # ╔═╡ b3e7ad58-ac03-463c-9df9-bdf5872a23ed
 c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
     "mark"={:rect},
     "x"={"field"=:label,"type"="ordinal","sort"="ascending",
 		"axis"={"orient"="top","labelAngle"=0}},
     "y"={"field"=:fmnist_label,"type"="ordinal","sort"="ascending"},
-    "color"={"field"=:label,aggregate="count", "scale"={scheme="lightgreyteal"}},
+    "color"={"field"=:label, aggregate="count", "scale"={scheme="lightgreyteal"}},
     "config"= {"axis"= {"grid"= true, "tickBand"= "extent"}}
 );
 
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
-GetSelected(text="Get Selection") = @htl("""
+GetSelected(text="Select Initial Samples") = @htl("""
 	<div id="ok">
 	<button>$(text)</button>
 	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
@@ -221,15 +224,48 @@ GetSelected(text="Get Selection") = @htl("""
 # ╔═╡ a9cb0024-ae23-4fc9-81d8-4ea335884900
 @bind selected GetSelected()
 
+# ╔═╡ a3feade2-822e-43eb-8a02-5b67985af4c0
+GetFinalSelection(text="Final Picks") = @htl("""
+	<div id="ok">
+	<button>$(text)</button>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+    <script id="selection">
+	var div = currentScript.parentElement
+	var button = div.querySelector("button")
+	button.addEventListener("click", (e) => {
+		div.value = d3.select("#sampleview").selectAll("svg").selectAll(".selected").data()
+		div.dispatchEvent(new CustomEvent("input"))
+		e.preventDefault()
+	})
+	const svg = d3.select("#sampleview").selectAll("svg").selectAll(".selected")
+	div.value = svg.data()
+    </script>
+	</div>
+""")
+
+# ╔═╡ e314152b-9f97-43cd-a164-8833d13c1eb0
+@bind finalselection GetFinalSelection()
+
 # ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
-selected
+begin
+	mnistselection = []
+	fmnistselection = []
+	mnistselecimg = []
+	fmnistselecimg = []
+	for i in finalselection
+		if i["dataset"] == "mnist"
+			push!(mnistselection,mnist_x[i["id"],:])
+			push!(mnistselecimg, MNIST.convert2image(mnist_x[i["id"],:]))
+		else
+			push!(fmnistselection,fmnist_x[i["id"],:])
+			push!(fmnistselecimg, MNIST.convert2image(fmnist_x[i["id"],:]))
+		end
+	end
+	[mnistselecimg]
+end
 
-# ╔═╡ 8a0319c9-51ac-4e99-a4d9-1c07bee83381
-MNIST.convert2image(mnist_x[2,:])
-
-# ╔═╡ 7b20f2d5-a2c7-4705-9576-f39cf4ca03f5
-# mosaicview(
-# 	[MNIST.convert2image(fmnist_x[selection_fmnist[1],:]) MNIST.convert2image(fmnist_x[selection_fmnist[1],:])])
+# ╔═╡ 803bd19c-3751-4753-95c7-307c2be89074
+[fmnistselecimg]
 
 # ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
 @bind transformations Select(["none","equalization", "gamma"])
@@ -602,14 +638,32 @@ Scatter = @htl("""
    float:right;
    width:400px;
 }
+.dotfmnist {
+  height: 10px;
+  width: 10px;
+  background-color: #bbb;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dotmnist {
+  height: 10px;
+  width: 10px;
+  background-color: #4682b4;
+  border-radius: 50%;
+  display: inline-block;
+}
 </style>
 
 <div id="wrap">
 	<h1> Transferability Analysis via Optimal Transport </h1>
     <div id="left_col">
+	<h5>Optimal Transport between MNIST and FMNIST</h5>
+	<p>
+	mnist <span class="dotmnist"></span> 	fmnist <span class="dotfmnist"></span>
      <div id="myvis"></div>
     </div>
     <div id="right_col">
+	<h5>Optimal Transport coupling matrix heatmap</h5>
 	<div id="myvis2">
 	</div>
     </div>
@@ -631,7 +685,7 @@ Scatter = @htl("""
             var selection = 0;
 
             var height = 400;
-            var width = 400;
+            var width = 350;
             var margin = { top: 20, right: 30, bottom: 30, left: 40 };
 
             const data = JSON.parse($(dfjson));
@@ -663,7 +717,7 @@ Scatter = @htl("""
                 .nice()
                 .range([height - margin.bottom, margin.top]);
 
-            const color = d3.scaleOrdinal().domain(["mnist", "fmnist"]).range(["#440154ff", "#21908dff"]);
+            const color = d3.scaleOrdinal().domain(["mnist", "fmnist"]).range(["steelblue", "grey"]);
 
             var line = d3
                 .line()
@@ -680,6 +734,25 @@ Scatter = @htl("""
 
             path.attr("stroke", "steelblue").attr("stroke-width", 0.5).attr("stroke-linejoin", "round").attr("stroke-linecap", "round");
 
+		if($(markpicker) == "Circles"){
+	
+	var myimage = svg
+                .append("g")
+                .selectAll("circle")
+                .data(data)
+                .join("circle")
+                .attr("cx", (d) => x(d.x))
+                .attr("cy", (d) => y(d.y))
+                .attr("r", 10)
+				.attr("fill", "steelblue")
+                .attr("opacity", 0.8)
+				.style("fill", function (d) { return color(d.dataset) } )
+                .attr("id", function (d, i) {
+                    return "soruce" + d.source;
+                });	
+	
+	
+	}else{
             var myimage = svg
                 .append("g")
                 .selectAll("image")
@@ -693,7 +766,7 @@ Scatter = @htl("""
                 .attr("opacity", 1)
                 .attr("id", function (d, i) {
                     return "soruce" + d.source;
-                });
+                });}
 
             function brushed({ selection }) {
                 let value = [];
@@ -778,14 +851,16 @@ df
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
+# ╟─3770fcc8-a00a-4b9f-9dad-687916e0257a
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─b3e7ad58-ac03-463c-9df9-bdf5872a23ed
-# ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
-# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
-# ╠═839f0087-5890-462d-8507-70b3c3db797d
-# ╠═07120a08-226b-4907-87c7-f5d63af616a7
-# ╠═8a0319c9-51ac-4e99-a4d9-1c07bee83381
-# ╠═7b20f2d5-a2c7-4705-9576-f39cf4ca03f5
+# ╠═a9cb0024-ae23-4fc9-81d8-4ea335884900
+# ╠═e314152b-9f97-43cd-a164-8833d13c1eb0
+# ╟─95063639-9e69-4bff-85e0-31e642be8a0a
+# ╟─839f0087-5890-462d-8507-70b3c3db797d
+# ╠═a3feade2-822e-43eb-8a02-5b67985af4c0
+# ╟─07120a08-226b-4907-87c7-f5d63af616a7
+# ╟─803bd19c-3751-4753-95c7-307c2be89074
 # ╠═3aed32f1-f15c-4672-8641-e52c9a7c7671
 # ╠═b2aafd47-c5c1-4ada-8d48-bfea30292d20
 # ╠═bf62c705-49cc-4545-8bdf-316a61c9a5c0
