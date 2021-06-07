@@ -1,3 +1,5 @@
+module OTDD
+
 using OptimalTransport
 using VegaLite
 using Distances
@@ -73,4 +75,5 @@ function otdd(X1, y1, X2, y2; ε = 1, dx=SqEuclidean(), W = nothing)
     γ = sinkhorn(ones(n1)./n1, ones(n2)./n2, C, ε);
     
     return C, γ, dot(C,γ)
+end
 end

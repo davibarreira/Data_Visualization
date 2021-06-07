@@ -36,6 +36,9 @@ begin
     using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP
 end
 
+# ╔═╡ 1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
+include("otdd.jl")
+
 # ╔═╡ 2ffddf10-bd51-11eb-12cb-f1add38b47fb
 md"""
 # Dataset Transferability Analysis
@@ -60,8 +63,8 @@ begin
 	fmnist_x = fmnist_x'[1:N,:];
 	fmnist_y = fmnist_y[1:N];
 	img_url = vcat(
-					["./images/mnist_"*string(i)*".png" for i in 1:N],
-					["./images/fmnist_"*string(i)*".png" for i in 1:N]);
+					["http://localhost:5000/mnist_"*string(i)*".png" for i in 1:N],
+					["http://localhost:5000/fmnist_"*string(i)*".png" for i in 1:N]);
 end
 
 # ╔═╡ b3fd7749-18ef-4033-9e2d-431ee284c11b
@@ -92,7 +95,7 @@ begin
 	df = DataFrame(
 		x     = res[:,1],
 		y     = res[:,2],
-		img    = img_url,
+		img = img_url,
 		label  = vcat(mnist_y[1:N],fmnist_y[1:N]),
 		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
 
@@ -110,12 +113,6 @@ dfjson = arraytable(df)
 md"""
 Dataset for heatmap
 """
-
-# ╔═╡ 92af2802-acb2-4b67-9449-1fe793174df7
-source = df[1:N,:];
-
-# ╔═╡ 32a4e97d-ecf0-4ff0-9d2d-0d6f47b855f2
-# source[!,:fmnist_label] = df[source[!,:final].+N,:label];
 
 # ╔═╡ 8cf64c29-4e99-4222-9bc6-0b658fcda34a
 md"""
@@ -144,82 +141,54 @@ UMAP. An Optimal Transport between the datasets is calculated using the
 In the final project, the user will be able to select datapoints, visulize information, perform augumentations to the dataset and understand how this can improve the Transfer Learning capability between the models.
 """
 
-# ╔═╡ a7db774c-363b-4a92-9c20-df4477c4a135
-# @htl("""
-# 	<head>
-#     <title>Embedding Vega-Lite</title>
-#     <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
-#     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
-#     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
-#   </head>
-#   <body>
-#     <div id="vis"></div>
-
-#     <script type="text/javascript">
-# 	const spec = JSON.parse($(json(v1)));
-#   	vegaEmbed("#vis", spec)
-# 	.then(result => console.log(result))
-#       .catch(console.warn);
-#     </script>
-#   </body>
-# """)
-
-## `@htl` is a `macro` in Julia. A macro is a function written to perform meta-programming. The `@htl` macro is from the `HypertextLiteral.jl` package, and it parses the string in julia to `html`.
-
 # ╔═╡ 3ce0657e-5487-43c9-a28c-7661c95a1486
 md"""
 This is another key visualization. It's a Heatmap showing how the labels are being transfered among the datasets. For example, note that the MNIST label "0" is being transfered almost exclusively to the FashionMNIST label "1". Hence, this implies that when doing the trasnfer learning, the model trained on MNIST can perform well on classifying "1" on the FashionMNIST. In contrast, the label "9" is very spread out among different labels, which can indicate that perhaps some data augumentation might improve the transferability. Another aspect that will be studied is the effect of label imbalance.
 """
 
 # ╔═╡ c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
-@htl("""
-<head>
-    <title>Embedding Vega-Lite</title>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+# @htl("""
+# <head>
+#     <title>Embedding Vega-Lite</title>
+#     <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
+#     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
+#     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
+# 	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
 
-  <body>
+#   <body>
     
-	<div id="vis"></div>
-    <script type="text/javascript">
-	const spec = JSON.parse($(json(v1)));
-  	vegaEmbed("#vis", spec,{renderer: "svg"})
-	.then(() =>{
-		const svg = d3.select("#vis").selectAll("svg")
+# 	<div id="vis"></div>
+#     <script type="text/javascript">
+# 	const spec = JSON.parse($(json(v1)));
+#   	vegaEmbed("#vis", spec,{renderer: "svg"})
+# 	.then(() =>{
+# 		const svg = d3.select("#vis").selectAll("svg")
 	
-		const dot = svg.selectAll(".mark-symbol.role-mark")
-			.selectAll("path")
-			.attr("fill","green")
-	console.log(svg)
+# 		const dot = svg.selectAll(".mark-symbol.role-mark")
+# 			.selectAll("path")
+# 			.attr("fill","green")
+# 	console.log(svg)
 		
-		const brush = d3.brush()
-      	.on("start brush end", brushed);
+# 		const brush = d3.brush()
+#       	.on("start brush end", brushed);
 
 
 	
 	
 	
-	}
-	)
-      .catch(console.warn);
-    </script>
+# 	}
+# 	)
+#       .catch(console.warn);
+#     </script>
 	
-	<script id="d3">
+# 	<script id="d3">
 		
 
-	</script>
+# 	</script>
 	
 	
-  </body>
-""")
-
-# ╔═╡ 359d09ac-a255-4688-b43a-af5b052e7c7d
-
-
-# ╔═╡ 7ad897bd-3727-4bbb-a06b-710233977f00
-
+#   </body>
+# """)
 
 # ╔═╡ 742ef2ec-4c23-46e7-ad39-ff838ef156b1
 md"""
@@ -229,12 +198,16 @@ Still on progress...
 """
 
 # ╔═╡ 7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
-@htl("""
+Scatter = @htl("""
 	<div>
     <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
 	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+	<script>
+	let cell = currentScript.closest("pluto-cell")
+	cell.style.width = "1000px"
+	</script>
     <div id="myvis"></div>
 
     <script id="createplot">
@@ -243,7 +216,7 @@ Still on progress...
 	var selection = 0;
 	
 		var height = 400;
-		var width = 600;
+		var width = 800;
 		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
 	
 		const data = JSON.parse($(dfjson))
@@ -257,10 +230,13 @@ Still on progress...
 	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
     .range([margin.left, width - margin.right]);
 
-
-const y = d3.scaleLinear()
-   .domain(d3.extent(data, d => d.y)).nice()
-   .range([height - margin.bottom, margin.top]);
+	const y = d3.scaleLinear()
+	   .domain(d3.extent(data, d => d.y)).nice()
+	   .range([height - margin.bottom, margin.top]);
+	
+	const color = d3.scaleOrdinal()
+    .domain(["mnist", "fmnist"])
+    .range([ "#440154ff", "#21908dff"]);
 	
 	const dot = svg.append("g")
 	.selectAll("circle")
@@ -273,6 +249,15 @@ const y = d3.scaleLinear()
     .attr("stroke", "steelblue")
 	.attr("stroke-width", 0)
 	.attr('opacity',0.5)
+	
+var myimage = svg.selectAll('image')
+	.data(data)
+	.join('image')
+    .attr('xlink:href', d => d.img)
+	.attr("x", d => x(d.x))
+	.attr("y", d => y(d.y))
+    .attr('width', 30)
+    .attr('height', 30)
 	
 	function brushed({selection}) {
 	let value = [];
@@ -320,11 +305,14 @@ GetSelected(text="Get Selection") = @htl("""
 	</div>
 """)
 
-# ╔═╡ 2d4162da-f42a-4bfb-b75f-8c0b37d26b25
+# ╔═╡ a9cb0024-ae23-4fc9-81d8-4ea335884900
 @bind selected GetSelected()
 
 # ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
 selected
+
+# ╔═╡ ba3c2b32-996d-414d-b96b-d272a103294f
+LocalResource(img_url[150])
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
@@ -338,6 +326,7 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
 # ╠═8529c382-f72f-44f7-8ccd-ce68ab03776e
+# ╠═1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
 # ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
 # ╟─b3fd7749-18ef-4033-9e2d-431ee284c11b
 # ╟─4a741e16-7e80-43cb-bfe3-63ae442d61f1
@@ -348,20 +337,16 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
 # ╠═3994768a-526e-4116-8dee-f398c7a36ffd
 # ╟─21b3b741-1ea1-49a4-a6ae-b22666f53e19
-# ╠═92af2802-acb2-4b67-9449-1fe793174df7
-# ╠═32a4e97d-ecf0-4ff0-9d2d-0d6f47b855f2
 # ╟─8cf64c29-4e99-4222-9bc6-0b658fcda34a
 # ╠═9a04b97a-8a74-4c21-b68d-0f3382b6f16d
 # ╟─8feb1c33-ba6d-449a-8676-b1144d4d4312
-# ╠═a7db774c-363b-4a92-9c20-df4477c4a135
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
-# ╠═c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
-# ╠═359d09ac-a255-4688-b43a-af5b052e7c7d
-# ╠═7ad897bd-3727-4bbb-a06b-710233977f00
+# ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
-# ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+# ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─839f0087-5890-462d-8507-70b3c3db797d
-# ╟─2d4162da-f42a-4bfb-b75f-8c0b37d26b25
+# ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
+# ╠═ba3c2b32-996d-414d-b96b-d272a103294f
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
