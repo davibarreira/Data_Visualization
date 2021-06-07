@@ -653,7 +653,9 @@ var line = d3.line()
                     .attr("class", "unselected")
                     .filter(function(d) {
 						
-	return x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1;
+	return (x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1 ||
+	x0 <= x(d.tx) && x(d.tx) < x1 && y0 <= y(d.ty) && y(d.ty) < y1
+	);
 	})
                     .attr("class", "selected")
                     .attr("opacity", 1.0)
