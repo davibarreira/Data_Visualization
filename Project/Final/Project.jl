@@ -124,71 +124,6 @@ md"""
 Dataset for heatmap
 """
 
-# ╔═╡ 8feb1c33-ba6d-449a-8676-b1144d4d4312
-md"""
-### Plotting with VegaLite directly from JavaScript
-Plot below is the 2D projection of both MNIST and FashionMNIST using
-UMAP. An Optimal Transport between the datasets is calculated using the
-`OptimalTranposrt.jl` package. This plot is one of the "key" visualizations, although there isn't yet any interactivity.
-In the final project, the user will be able to select datapoints, visulize information, perform augumentations to the dataset and understand how this can improve the Transfer Learning capability between the models.
-"""
-
-# ╔═╡ 3ce0657e-5487-43c9-a28c-7661c95a1486
-md"""
-This is another key visualization. It's a Heatmap showing how the labels are being transfered among the datasets. For example, note that the MNIST label "0" is being transfered almost exclusively to the FashionMNIST label "1". Hence, this implies that when doing the trasnfer learning, the model trained on MNIST can perform well on classifying "1" on the FashionMNIST. In contrast, the label "9" is very spread out among different labels, which can indicate that perhaps some data augumentation might improve the transferability. Another aspect that will be studied is the effect of label imbalance.
-"""
-
-# ╔═╡ c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
-# @htl("""
-# <head>
-#     <title>Embedding Vega-Lite</title>
-#     <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
-#     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
-#     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
-# 	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-
-#   <body>
-    
-# 	<div id="vis"></div>
-#     <script type="text/javascript">
-# 	const spec = JSON.parse($(json(v1)));
-#   	vegaEmbed("#vis", spec,{renderer: "svg"})
-# 	.then(() =>{
-# 		const svg = d3.select("#vis").selectAll("svg")
-	
-# 		const dot = svg.selectAll(".mark-symbol.role-mark")
-# 			.selectAll("path")
-# 			.attr("fill","green")
-# 	console.log(svg)
-		
-# 		const brush = d3.brush()
-#       	.on("start brush end", brushed);
-
-
-	
-	
-	
-# 	}
-# 	)
-#       .catch(console.warn);
-#     </script>
-	
-# 	<script id="d3">
-		
-
-# 	</script>
-	
-	
-#   </body>
-# """)
-
-# ╔═╡ 742ef2ec-4c23-46e7-ad39-ff838ef156b1
-md"""
-### Using D3 with Pluto
-This will allow to create more interactivity.
-Still on progress...
-"""
-
 # ╔═╡ 3770fcc8-a00a-4b9f-9dad-687916e0257a
 @bind markpicker Select(["Images","Circles"])
 
@@ -225,6 +160,14 @@ c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
 md"""
 #### Finals Picks to be Augumented:
 """
+
+# ╔═╡ 4adf778c-bf01-4b93-93c6-1c6cd326e184
+md"""
+#### Aplying Augumentation to Final Selection
+"""
+
+# ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
+@bind transformations Select(["none","equalization", "gamma"])
 
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 GetSelected(text="Select Initial Samples") = @htl("""
@@ -304,9 +247,6 @@ end
 
 # ╔═╡ 65e421d2-0508-4623-b62e-43c1dadca714
 [fmnistsimg]
-
-# ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
-@bind transformations Select(["none","equalization", "gamma"])
 
 # ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
 @bind savetransformation Button("Save Modifications")
@@ -549,6 +489,13 @@ C, γ, otdd_initial = ot.OTDD.otdd(mnist_x,mnist_y, fmnist_x, fmnist_y, W=W);
 
 # ╔═╡ e7ab7253-70b7-4ad8-8c49-4910a2aa68d0
 round(otdd_initial,digits=2)
+
+# ╔═╡ dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
+md"""
+## Intial OTDD = $(round(otdd_initial,digits=2))
+Remember, the OTDD measures the distance between datasets, so trying to minimize is a heuristic to improve the process of transfer learning.
+Hence, the goal of this project is to create a visualization tool to help analystis understand their dataset and perform data augumentation, seeking to reduce the OTDD and which (hopefully) can lead to better transfer learning.
+"""
 
 # ╔═╡ f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
 """
@@ -860,20 +807,17 @@ df
 # ╟─b3fd7749-18ef-4033-9e2d-431ee284c11b
 # ╟─4a741e16-7e80-43cb-bfe3-63ae442d61f1
 # ╟─75b36234-7d5b-4527-9274-2239046b556a
-# ╠═068369ca-a6db-4f01-b192-1256332202f0
+# ╟─068369ca-a6db-4f01-b192-1256332202f0
 # ╟─b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
-# ╠═df0f24fd-f847-40fb-b3dc-12350face55f
-# ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
-# ╠═f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
-# ╠═c315a543-e9be-4b79-8449-b9175c923bb8
-# ╠═c5f10b93-4e80-49a5-9f95-fbc489449bde
+# ╟─df0f24fd-f847-40fb-b3dc-12350face55f
+# ╟─239deeeb-b34f-4057-9752-4d6f5e0b916d
+# ╟─f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
+# ╟─c315a543-e9be-4b79-8449-b9175c923bb8
+# ╟─c5f10b93-4e80-49a5-9f95-fbc489449bde
 # ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
 # ╟─21b3b741-1ea1-49a4-a6ae-b22666f53e19
-# ╟─8feb1c33-ba6d-449a-8676-b1144d4d4312
-# ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
-# ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
-# ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
 # ╟─3770fcc8-a00a-4b9f-9dad-687916e0257a
+# ╟─dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─b3e7ad58-ac03-463c-9df9-bdf5872a23ed
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
@@ -884,16 +828,17 @@ df
 # ╟─7549332e-a5a8-4dfb-b36d-423da82b9d98
 # ╟─65e421d2-0508-4623-b62e-43c1dadca714
 # ╟─e4aa0577-dfc6-4159-a00e-09adbc8c8078
-# ╟─839f0087-5890-462d-8507-70b3c3db797d
-# ╟─a3feade2-822e-43eb-8a02-5b67985af4c0
+# ╟─4adf778c-bf01-4b93-93c6-1c6cd326e184
 # ╟─3aed32f1-f15c-4672-8641-e52c9a7c7671
 # ╟─86522271-f06a-493e-a261-6c1afc6076f4
+# ╟─839f0087-5890-462d-8507-70b3c3db797d
+# ╟─a3feade2-822e-43eb-8a02-5b67985af4c0
 # ╟─7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
 # ╟─bf62c705-49cc-4545-8bdf-316a61c9a5c0
 # ╟─e13b971a-3575-40b4-90d0-4dbae53e84ef
 # ╟─589be23b-fc9b-4c5b-9316-64ce3074a281
 # ╟─d468ee56-e522-421b-91b3-66135b0e8683
-# ╠═835d761d-bfe5-45f6-919d-d0c03711a5c8
+# ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
 # ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
 # ╠═583923b6-f08a-4074-94ff-2fc480e16277
