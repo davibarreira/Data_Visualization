@@ -241,8 +241,8 @@ Scatter = @htl("""
             .attr("xlink:href", (d) => d.img)
             .attr("x", (d) => x(d.x))
             .attr("y", (d) => y(d.y))
-            .attr("width", 30)
-            .attr("height", 30)
+            .attr("width", 20)
+            .attr("height", 20)
             .attr("opacity", 1);
 
         function brushed({ selection }) {
@@ -283,7 +283,7 @@ Scatter = @htl("""
                     .attr("class", "unselected")
                     .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
                     .attr("class", "selected")
-                    .attr("opacity", 0.5)
+                    .attr("opacity", 1.0)
                     .data(visible)
                     .attr("xlink:href", (d) => d.img)
                     .attr("x", (d) => x3(d.x))
@@ -335,9 +335,9 @@ Scatter = @htl("""
             .attr("xlink:href", (d) => d.img)
             .attr("x", (d) => x2(d.x))
             .attr("y", (d) => y2(d.y))
-            .attr("width", 30)
-            .attr("height", 30)
-            .attr("opacity", 1);
+            .attr("width", 60)
+            .attr("height", 60)
+            .attr("opacity", 0);
 
         div.value = svg.selectAll("selected");
     </script>
