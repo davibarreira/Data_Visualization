@@ -216,7 +216,7 @@ Scatter = @htl("""
     .attr("y",0)
     .attr("height",  height + margin.top + margin.bottom)
     .attr("width", width + margin.left)
-    .style("fill", "#F2F3F4")
+    .style("fill", "white")
 	.attr("stroke","grey")
 	
 	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
@@ -253,11 +253,24 @@ var myimage = svg.append("g").selectAll('image')
 		.attr("class","selected")
 		.attr('opacity',1.0).data();
 		
-		plot2.selectAll("image").attr("opacity",0).attr("class","unselected")
+		var visible = plot2.selectAll("image").attr("opacity",0).attr("class","unselected")
 		.filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
 		.attr("class","selected")
-		.attr('opacity',1.0);
+		.attr('opacity',1.0).data();
 		
+	const x3 = d3.scaleLinear().domain(d3.extent(visible, d => d.x)).nice()
+    .range([margin.left, width - margin.right]);
+	const y2 = d3.scaleLinear()
+	   .domain(d3.extent(visible, d => d.y)).nice()
+	   .range([height - margin.bottom, margin.top]);
+	 plot2.selectAll("image").attr("opacity",0).attr("class","unselected")
+		.filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+		.attr("class","selected")
+		.attr('opacity',0.5).data(visible)
+    	.attr('xlink:href', d => d.img)
+		.attr("x", d => x3(d.x))
+		.attr("y", d => y2(d.y))
+	
     } else {
 	  myimage.attr("class","selected").attr('opacity',1.0);
     }
