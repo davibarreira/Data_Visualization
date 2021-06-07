@@ -104,7 +104,7 @@ begin
 end;
 
 # ╔═╡ 0a4b5321-5013-4ddf-be7a-2ba10f7e8b65
-df
+
 
 # ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
 dfjson = arraytable(df)
@@ -535,10 +535,12 @@ begin
 	df[!,:target] = edges[!,:target]
 	tx = []
 	ty = []
+	Ndf  = Int(size(df)[1]/2)
 	for i in 1:size(df)[1]
 		if df[i,:dataset] == "mnist"
-			push!(tx,df[df[i,:target],:x])
-			push!(ty,df[df[i,:target],:y])
+			push!(tx,df[df[i,:target]+Ndf,:x])
+			push!(ty,df[df[i,:target]+Ndf,:y])
+		
 		else
 			push!(tx,df[df[i,:source],:x])
 			push!(ty,df[df[i,:source],:y])
@@ -649,7 +651,7 @@ var line = d3.line()
                 const [[x0, y0], [x1, y1]] = selection;
 
                 value = myimage
-                    .attr("opacity", 0.3)
+                    .attr("opacity", 0.1)
                     .attr("class", "unselected")
                     .filter(function(d) {
 						
@@ -752,7 +754,7 @@ json(nedges)
 nedges[6]
 
 # ╔═╡ 32d943bc-e504-4929-b1d4-ce1882a690f8
-df[61,:]
+df
 
 # ╔═╡ 9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
 
@@ -785,7 +787,7 @@ df[61,:]
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
-# ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+# ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╟─95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
