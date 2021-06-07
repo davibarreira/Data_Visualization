@@ -27,13 +27,18 @@ begin
 		Pkg.PackageSpec(name="Distances"),
 		Pkg.PackageSpec(name="LinearAlgebra"),
 		Pkg.PackageSpec(name="JSONTables"),
-		Pkg.PackageSpec(name="Images")
+		Pkg.PackageSpec(name="Images"),
+		Pkg.PackageSpec(name="ImageContrastAdjustment"),
+		Pkg.PackageSpec(name="ImageCore"),	
+		Pkg.PackageSpec(name="ImageTransformations"),
+		Pkg.PackageSpec(name="Rotations"),
+		Pkg.PackageSpec(name="CoordinateTransformations")
     ])
 	Pkg.add(url="https://github.com/JuliaOptimalTransport/OptimalTransport.jl")
 	Pkg.add(url="https://github.com/davibarreira/LsqFit.jl")
 	Pkg.add(url="https://github.com/davibarreira/UMAP.jl")
 	
-    using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP
+    using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP, ImageContrastAdjustment, ImageCore, ImageTransformations, Rotations
 end
 
 # ╔═╡ 1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
@@ -93,6 +98,7 @@ Generating dataset for plots
 # ╔═╡ df0f24fd-f847-40fb-b3dc-12350face55f
 begin
 	df = DataFrame(
+		id    = collect(1:2*N),
 		x     = res[:,1],
 		y     = res[:,2],
 		img = img_url,
@@ -113,24 +119,6 @@ dfjson = arraytable(df)
 md"""
 Dataset for heatmap
 """
-
-# ╔═╡ 8cf64c29-4e99-4222-9bc6-0b658fcda34a
-md"""
-### Vega-Lite specifications with Julia
-"""
-
-# ╔═╡ 9a04b97a-8a74-4c21-b68d-0f3382b6f16d
-v1 =@vlplot("data"=df,
-	"mark"={"type"=:circle,"size"=200,"opacity"=1},
-	"selection"={"grid"={
-	"type"=:interval,
-	"resolve"=:global,
-	"bind"=:scales,
-	"translate"="[mousedown[!event.shiftKey], window:mouseup] > window:mousemove!",
-                "zoom"="wheel![!event.shiftKey]"}},
-    x={:x,"type"="quantitative"},
-    y={:y,"type"="quantitative"},
-    color={:dataset, "type"="nominal"},"height"=500,"width"=500);
 
 # ╔═╡ 8feb1c33-ba6d-449a-8676-b1144d4d4312
 md"""
@@ -238,17 +226,6 @@ Scatter = @htl("""
     .domain(["mnist", "fmnist"])
     .range([ "#440154ff", "#21908dff"]);
 	
-	const dot = svg.append("g")
-	.selectAll("circle")
-	.data(data)
-	.join("circle")
-	.attr("cx", d => x(d.x))
-	.attr("cy", d => y(d.y))
-	.attr("r", 1)
-	.attr("fill", "steelblue")
-    .attr("stroke", "steelblue")
-	.attr("stroke-width", 0)
-	.attr('opacity',0.5)
 	
 var myimage = svg.selectAll('image')
 	.data(data)
@@ -265,22 +242,13 @@ var myimage = svg.selectAll('image')
 	let value = [];
     if (selection) {
       const [[x0, y0], [x1, y1]] = selection;
-      value = dot
-        .style("fill", "gray")
-		.attr("class","unselected")
-        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-        .style("fill", "steelblue")
-		.attr("class","selected")
-        .data();
 	    
-      myimage.attr('opacity',0.3)
+      value = myimage.attr('opacity',0.3)
 		.attr("class","unselected")
         .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
 		.attr("class","selected")
-		.attr('opacity',1.0);
+		.attr('opacity',1.0).data();
     } else {
-      dot.style("fill", "steelblue")
-		 .attr("class","selected");
 	  myimage.attr("class","selected").attr('opacity',1.0);
     }
 	div.value = value;
@@ -334,11 +302,21 @@ GetSelected(text="Get Selection") = @htl("""
 selected
 
 # ╔═╡ d468ee56-e522-421b-91b3-66135b0e8683
-@htl("""
-	<script>
-	var ok = "ok";
-	</script>
-	""")
+begin
+	modified = DataFrame(selected[1])
+	push!(modified,selected[2:end]...)
+	selection_mnist = modified[modified[!,:dataset] .== "mnist",:id]
+	selection_fmnist = modified[modified[!,:dataset] .== "fmnist",:id]
+end
+
+# ╔═╡ 95063639-9e69-4bff-85e0-31e642be8a0a
+
+
+# ╔═╡ fef062bf-b1e8-4e9e-9f45-0f0c86622d01
+
+
+# ╔═╡ 3865476d-dc2d-450d-8676-e8833b1db057
+
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
@@ -360,10 +338,20 @@ md"""
 res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
 
 # ╔═╡ e526398c-e77e-43fe-bfb4-638ff2ad579b
+function applyequalization(datasetarray, nbins=256)
+    img  = Gray.(datasetarray)
+    mimg = adjust_histogram(img, Equalization(nbins = nbins))
+    return reshape(convert(Array{Float64}, mimg),28*28)
+end
 
 
 # ╔═╡ 6c333ac9-22a6-4353-a4f1-67bebdaadc24
-
+function applyrotation(datasetarray, rotation=pi/2)
+    img  = Gray.(datasetarray)
+    trfm = recenter(RotMatrix(pi/2), center(img));
+    mimg = warp(img,trfm)
+    return reshape(convert(Array{Float64}, mimg),28*28)
+end
 
 # ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
 @htl("""
@@ -426,24 +414,6 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
     </script>
 """)
 
-# ╔═╡ cc3be0be-41e0-497c-9186-875459eead51
-
-
-# ╔═╡ 6e943451-c831-4a65-99b5-65fbd6ee1753
-
-
-# ╔═╡ e44468be-2f1d-478d-a4bb-7009fefe1098
-
-
-# ╔═╡ 1d9b2a30-3b5f-47e2-bd11-af831169cda0
-
-
-# ╔═╡ 5db078b7-a85d-46b6-b533-d2c05117b9d3
-
-
-# ╔═╡ 5e63314f-bd6d-4486-b82f-dbad5615e63a
-
-
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
@@ -459,8 +429,6 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
 # ╠═3994768a-526e-4116-8dee-f398c7a36ffd
 # ╟─21b3b741-1ea1-49a4-a6ae-b22666f53e19
-# ╟─8cf64c29-4e99-4222-9bc6-0b658fcda34a
-# ╠═9a04b97a-8a74-4c21-b68d-0f3382b6f16d
 # ╟─8feb1c33-ba6d-449a-8676-b1144d4d4312
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
@@ -470,15 +438,12 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
-# ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
+# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
+# ╠═fef062bf-b1e8-4e9e-9f45-0f0c86622d01
+# ╠═3865476d-dc2d-450d-8676-e8833b1db057
+# ╠═835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═530bc707-21f7-451f-9fee-6b3430759e0e
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
 # ╠═e526398c-e77e-43fe-bfb4-638ff2ad579b
 # ╠═6c333ac9-22a6-4353-a4f1-67bebdaadc24
 # ╠═1b066cf7-bf1b-4445-9e58-275679838973
-# ╠═cc3be0be-41e0-497c-9186-875459eead51
-# ╠═6e943451-c831-4a65-99b5-65fbd6ee1753
-# ╠═e44468be-2f1d-478d-a4bb-7009fefe1098
-# ╠═1d9b2a30-3b5f-47e2-bd11-af831169cda0
-# ╠═5db078b7-a85d-46b6-b533-d2c05117b9d3
-# ╠═5e63314f-bd6d-4486-b82f-dbad5615e63a
