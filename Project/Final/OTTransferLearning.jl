@@ -215,7 +215,7 @@ Scatter = @htl("""
 	
 	var selection = 0;
 	
-		var height = 400;
+		var height = 500;
 		var width = 800;
 		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
 	
@@ -244,7 +244,7 @@ Scatter = @htl("""
 	.join("circle")
 	.attr("cx", d => x(d.x))
 	.attr("cy", d => y(d.y))
-	.attr("r", 5)
+	.attr("r", 1)
 	.attr("fill", "steelblue")
     .attr("stroke", "steelblue")
 	.attr("stroke-width", 0)
@@ -258,7 +258,9 @@ var myimage = svg.selectAll('image')
 	.attr("y", d => y(d.y))
     .attr('width', 30)
     .attr('height', 30)
-	
+	.attr('opacity',1)
+
+
 	function brushed({selection}) {
 	let value = [];
     if (selection) {
@@ -270,9 +272,16 @@ var myimage = svg.selectAll('image')
         .style("fill", "steelblue")
 		.attr("class","selected")
         .data();
+	    
+      myimage.attr('opacity',0.3)
+		.attr("class","unselected")
+        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+		.attr("class","selected")
+		.attr('opacity',1.0);
     } else {
       dot.style("fill", "steelblue")
 		 .attr("class","selected");
+	  myimage.attr("class","selected").attr('opacity',1.0);
     }
 	div.value = value;
     svg.property("value", value).dispatch("input");
@@ -280,7 +289,20 @@ var myimage = svg.selectAll('image')
 	const brush = d3.brush()
       .on("start brush end", brushed);
 	
-	 svg.call(brush);
+	
+	svg.call(d3.zoom()
+      	.extent([[0, 0], [width, height]])
+		.translateExtent([[0, 0], [width, height]])
+      	.scaleExtent([1, 8])
+      	.on("zoom", zoomed)).on("touchstart.zoom", null).on("mousedown.zoom", null)
+		.on("dblclick.zoom", null);
+
+  function zoomed({transform}) {
+    myimage.attr("transform", transform);
+  }
+	svg.call(brush);
+
+	
 	div.value = svg.selectAll("selected")
     </script>
 	</div>
@@ -311,16 +333,116 @@ GetSelected(text="Get Selection") = @htl("""
 # ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
 selected
 
-# ╔═╡ ba3c2b32-996d-414d-b96b-d272a103294f
-LocalResource(img_url[150])
+# ╔═╡ d468ee56-e522-421b-91b3-66135b0e8683
+@htl("""
+	<script>
+	var ok = "ok";
+	</script>
+	""")
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
 ### Auxiliary Functions
 """
 
+# ╔═╡ 530bc707-21f7-451f-9fee-6b3430759e0e
+	# var rec = svg.selectAll('rect')
+	# .data(data)
+	# .join('rect')
+	# .attr("x", d => x(d.x))
+	# .attr("y", d => y(d.y))
+	# .attr('width', 30)
+	# .attr('height', 30)
+	# .style("fill", function(d) { return color(d.dataset)} )
+	# .attr('opacity',0.2)
+
 # ╔═╡ 70a5b623-418e-4b91-a1b2-dd88a26d5756
 res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
+
+# ╔═╡ e526398c-e77e-43fe-bfb4-638ff2ad579b
+
+
+# ╔═╡ 6c333ac9-22a6-4353-a4f1-67bebdaadc24
+
+
+# ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
+@htl("""
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+	<script>
+	let cell = currentScript.closest("pluto-cell")
+	cell.style.width = "1000px"
+	</script>
+    <div id="myvis2"></div>
+
+    <script id="createplot">
+		var height = 500;
+		var width = 800;
+		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
+	
+		const data = JSON.parse($(dfjson))
+	
+		const svg = d3
+			.select("#myvis2")
+			.append("svg")
+			.attr("width", width + margin.left + margin.right)
+    		.attr("height", height + margin.top + margin.bottom)
+	
+	
+	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
+    .range([margin.left, width - margin.right]);
+
+	const y = d3.scaleLinear()
+	   .domain(d3.extent(data, d => d.y)).nice()
+	   .range([height - margin.bottom, margin.top]);
+	
+	const color = d3.scaleOrdinal()
+    .domain(["mnist", "fmnist"])
+    .range([ "#440154ff", "#21908dff"]);
+	
+	const dot = svg.append("g")
+	.selectAll("circle")
+	.data(data)
+	.join("circle")
+	.attr("cx", d => x(d.x))
+	.attr("cy", d => y(d.y))
+	.attr("r", 1)
+	.attr("fill", "steelblue")
+    .attr("stroke", "steelblue")
+	.attr("stroke-width", 0)
+	.attr('opacity',0.5)
+	
+	 svg.call(d3.zoom()
+      .extent([[0, 0], [width, height]])
+      .scaleExtent([1, 8])
+      .on("zoom", zoomed));
+
+  function zoomed({transform}) {
+    dot.attr("transform", transform);
+  }
+	
+    </script>
+""")
+
+# ╔═╡ cc3be0be-41e0-497c-9186-875459eead51
+
+
+# ╔═╡ 6e943451-c831-4a65-99b5-65fbd6ee1753
+
+
+# ╔═╡ e44468be-2f1d-478d-a4bb-7009fefe1098
+
+
+# ╔═╡ 1d9b2a30-3b5f-47e2-bd11-af831169cda0
+
+
+# ╔═╡ 5db078b7-a85d-46b6-b533-d2c05117b9d3
+
+
+# ╔═╡ 5e63314f-bd6d-4486-b82f-dbad5615e63a
+
 
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
@@ -347,6 +469,16 @@ res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.0
 # ╟─839f0087-5890-462d-8507-70b3c3db797d
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
-# ╠═ba3c2b32-996d-414d-b96b-d272a103294f
+# ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
+# ╠═530bc707-21f7-451f-9fee-6b3430759e0e
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
+# ╠═e526398c-e77e-43fe-bfb4-638ff2ad579b
+# ╠═6c333ac9-22a6-4353-a4f1-67bebdaadc24
+# ╠═1b066cf7-bf1b-4445-9e58-275679838973
+# ╠═cc3be0be-41e0-497c-9186-875459eead51
+# ╠═6e943451-c831-4a65-99b5-65fbd6ee1753
+# ╠═e44468be-2f1d-478d-a4bb-7009fefe1098
+# ╠═1d9b2a30-3b5f-47e2-bd11-af831169cda0
+# ╠═5db078b7-a85d-46b6-b533-d2c05117b9d3
+# ╠═5e63314f-bd6d-4486-b82f-dbad5615e63a
