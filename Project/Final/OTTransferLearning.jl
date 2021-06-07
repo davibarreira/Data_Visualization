@@ -301,16 +301,115 @@ GetSelected(text="Get Selection") = @htl("""
 # ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
 selected
 
+# ╔═╡ 7b20f2d5-a2c7-4705-9576-f39cf4ca03f5
+# mosaicview(
+# 	[MNIST.convert2image(fmnist_x[selection_fmnist[1],:]) MNIST.convert2image(fmnist_x[selection_fmnist[1],:])])
+
+# ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
+@bind transformations Select(["none","equalization", "gamma"])
+
+# ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
+@bind savetransformation Button("Save Modifications")
+
 # ╔═╡ d468ee56-e522-421b-91b3-66135b0e8683
 begin
 	modified = DataFrame(selected[1])
 	push!(modified,selected[2:end]...)
 	selection_mnist = modified[modified[!,:dataset] .== "mnist",:id]
 	selection_fmnist = modified[modified[!,:dataset] .== "fmnist",:id]
-end
+	selectionjson = arraytable(modified)
+end;
 
 # ╔═╡ 95063639-9e69-4bff-85e0-31e642be8a0a
+SampleView = @htl("""
+	<div>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+	<script>
+	let cell = currentScript.closest("pluto-cell")
+	cell.style.width = "1000px"
+	</script>
+    <div id="sampleview"></div>
 
+    <script id="createplot">
+	var div = currentScript.parentElement
+	
+	var selection = 0;
+	
+		var height = 500;
+		var width = 800;
+		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
+	
+		const data = JSON.parse($(selectionjson))
+	
+		const svg = d3
+			.select("#sampleview")
+			.append("svg")
+			.attr("width", width + margin.left + margin.right)
+    		.attr("height", height + margin.top + margin.bottom)
+	
+	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
+    .range([margin.left, width - margin.right]);
+
+	const y = d3.scaleLinear()
+	   .domain(d3.extent(data, d => d.y)).nice()
+	   .range([height - margin.bottom, margin.top]);
+	
+	const color = d3.scaleOrdinal()
+    .domain(["mnist", "fmnist"])
+    .range([ "#440154ff", "#21908dff"]);
+	
+	
+var myimage = svg.selectAll('image')
+	.data(data)
+	.join('image')
+    .attr('xlink:href', d => d.img)
+	.attr("x", d => x(d.x))
+	.attr("y", d => y(d.y))
+    .attr('width', 30)
+    .attr('height', 30)
+	.attr('opacity',1)
+
+
+	function brushed({selection}) {
+	let value = [];
+    if (selection) {
+      const [[x0, y0], [x1, y1]] = selection;
+	    
+      value = myimage.attr('opacity',0.3)
+		.attr("class","unselected")
+        .filter(d => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+		.attr("class","selected")
+		.attr('opacity',1.0).data();
+    } else {
+	  myimage.attr("class","selected").attr('opacity',1.0);
+    }
+	div.value = value;
+    svg.property("value", value).dispatch("input");
+  }
+	const brush = d3.brush()
+      .on("start brush end", brushed);
+	
+	
+	svg.call(d3.zoom()
+      	.extent([[0, 0], [width, height]])
+		.translateExtent([[0, 0], [width, height]])
+      	.scaleExtent([1, 8])
+      	.on("zoom", zoomed)).on("touchstart.zoom", null).on("mousedown.zoom", null)
+		.on("dblclick.zoom", null);
+
+  function zoomed({transform}) {
+    myimage.attr("transform", transform);
+  }
+	svg.call(brush);
+
+	
+	div.value = svg.selectAll("selected")
+    </script>
+	</div>
+""")
 
 # ╔═╡ fef062bf-b1e8-4e9e-9f45-0f0c86622d01
 
@@ -345,74 +444,60 @@ function applyequalization(datasetarray, nbins=256)
 end
 
 
+# ╔═╡ 583923b6-f08a-4074-94ff-2fc480e16277
+function ApplyEqualization(img_ids,dataset)
+    for id in img_ids
+        if dataset == "mnist"
+            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applyequalization(mnist_x[id,:])))
+        else
+            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applyequalization(fmnist_x[id-N,:])))
+        end
+    end
+end
+
 # ╔═╡ 6c333ac9-22a6-4353-a4f1-67bebdaadc24
-function applyrotation(datasetarray, rotation=pi/2)
+function applygamma(datasetarray, gamma = 2)
     img  = Gray.(datasetarray)
-    trfm = recenter(RotMatrix(pi/2), center(img));
-    mimg = warp(img,trfm)
+    mimg = adjust_histogram(img, GammaCorrection(gamma = gamma))
     return reshape(convert(Array{Float64}, mimg),28*28)
 end
 
+# ╔═╡ 1150fee9-a9a5-4158-be90-eb72385cf3d1
+let
+	if transformations == "none"
+		MNIST.convert2image(fmnist_x[selection_fmnist[1]-N,:])
+	elseif transformations == "equalization"
+		mimg = applyequalization(fmnist_x[selection_fmnist[1]-N,:])
+		MNIST.convert2image(mimg)
+	else
+		mimg = applygamma(fmnist_x[selection_fmnist[1]-N,:])
+		MNIST.convert2image(mimg)
+	end
+end
+
+# ╔═╡ 57103a08-fefc-4c8c-85cb-a054de9edc5b
+function ApplyGamma(img_ids,dataset)
+    for id in img_ids
+        if dataset == "mnist"
+            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applygamma(mnist_x[id,:])))
+        else
+            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applygamma(fmnist_x[id-N,:])))
+        end
+    end
+end
+
+# ╔═╡ 589be23b-fc9b-4c5b-9316-64ce3074a281
+let
+	savetransformation
+	if transformations == "gamma"
+		ApplyGamma(selection_fmnist, "fmnist")
+	elseif transformations == "equalization"
+		ApplyEqualization(selection_fmnist, "fmnist")
+	end
+end
+
 # ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
-@htl("""
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-	<script>
-	let cell = currentScript.closest("pluto-cell")
-	cell.style.width = "1000px"
-	</script>
-    <div id="myvis2"></div>
 
-    <script id="createplot">
-		var height = 500;
-		var width = 800;
-		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
-	
-		const data = JSON.parse($(dfjson))
-	
-		const svg = d3
-			.select("#myvis2")
-			.append("svg")
-			.attr("width", width + margin.left + margin.right)
-    		.attr("height", height + margin.top + margin.bottom)
-	
-	
-	const x = d3.scaleLinear().domain(d3.extent(data, d => d.x)).nice()
-    .range([margin.left, width - margin.right]);
-
-	const y = d3.scaleLinear()
-	   .domain(d3.extent(data, d => d.y)).nice()
-	   .range([height - margin.bottom, margin.top]);
-	
-	const color = d3.scaleOrdinal()
-    .domain(["mnist", "fmnist"])
-    .range([ "#440154ff", "#21908dff"]);
-	
-	const dot = svg.append("g")
-	.selectAll("circle")
-	.data(data)
-	.join("circle")
-	.attr("cx", d => x(d.x))
-	.attr("cy", d => y(d.y))
-	.attr("r", 1)
-	.attr("fill", "steelblue")
-    .attr("stroke", "steelblue")
-	.attr("stroke-width", 0)
-	.attr('opacity',0.5)
-	
-	 svg.call(d3.zoom()
-      .extent([[0, 0], [width, height]])
-      .scaleExtent([1, 8])
-      .on("zoom", zoomed));
-
-  function zoomed({transform}) {
-    dot.attr("transform", transform);
-  }
-	
-    </script>
-""")
 
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
@@ -434,9 +519,14 @@ end
 # ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
 # ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
-# ╟─839f0087-5890-462d-8507-70b3c3db797d
-# ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
+# ╠═839f0087-5890-462d-8507-70b3c3db797d
+# ╠═a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╠═07120a08-226b-4907-87c7-f5d63af616a7
+# ╠═7b20f2d5-a2c7-4705-9576-f39cf4ca03f5
+# ╠═3aed32f1-f15c-4672-8641-e52c9a7c7671
+# ╠═bf62c705-49cc-4545-8bdf-316a61c9a5c0
+# ╠═1150fee9-a9a5-4158-be90-eb72385cf3d1
+# ╠═589be23b-fc9b-4c5b-9316-64ce3074a281
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╠═95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═fef062bf-b1e8-4e9e-9f45-0f0c86622d01
@@ -444,6 +534,8 @@ end
 # ╠═835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═530bc707-21f7-451f-9fee-6b3430759e0e
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
+# ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
+# ╠═583923b6-f08a-4074-94ff-2fc480e16277
 # ╠═e526398c-e77e-43fe-bfb4-638ff2ad579b
 # ╠═6c333ac9-22a6-4353-a4f1-67bebdaadc24
 # ╠═1b066cf7-bf1b-4445-9e58-275679838973
