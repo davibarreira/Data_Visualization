@@ -181,194 +181,6 @@ This will allow to create more interactivity.
 Still on progress...
 """
 
-# ╔═╡ 7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
-Scatter = @htl("""
-<div>
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-    <script>
-        let cell = currentScript.closest("pluto-cell");
-        cell.style.width = "1000px";
-    </script>
-    <div id="myvis"></div>
-
-    <script id="createplot">
-        var div = currentScript.parentElement;
-
-        var selection = 0;
-
-        var height = 300;
-        var width = 460;
-        var margin = { top: 20, right: 30, bottom: 30, left: 40 };
-
-        const data = JSON.parse($(dfjson));
-
-        const svg = d3
-            .select("#myvis")
-            .append("svg")
-            .attr("width", width * 2 + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom);
-
-        svg.append("rect")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("height", height + margin.top + margin.bottom)
-            .attr("width", width + margin.left)
-            .style("fill", "white")
-            .attr("stroke", "grey");
-
-        const x = d3
-            .scaleLinear()
-            .domain(d3.extent(data, (d) => d.x))
-            .nice()
-            .range([0, width - 2 * margin.right]);
-
-        const y = d3
-            .scaleLinear()
-            .domain(d3.extent(data, (d) => d.y))
-            .nice()
-            .range([height - margin.bottom, margin.top]);
-
-        const color = d3.scaleOrdinal().domain(["mnist", "fmnist"]).range(["#440154ff", "#21908dff"]);
-
-        var myimage = svg
-            .append("g")
-            .selectAll("image")
-            .data(data)
-            .join("image")
-            .attr("xlink:href", (d) => d.img)
-            .attr("x", (d) => x(d.x))
-            .attr("y", (d) => y(d.y))
-            .attr("width", 20)
-            .attr("height", 20)
-            .attr("opacity", 1);
-
-        function brushed({ selection }) {
-            let value = [];
-            if (selection) {
-                const [[x0, y0], [x1, y1]] = selection;
-
-                value = myimage
-                    .attr("opacity", 0.3)
-                    .attr("class", "unselected")
-                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-                    .attr("class", "selected")
-                    .attr("opacity", 1.0)
-                    .data();
-
-                var visible = plot2
-                    .selectAll("image")
-                    .attr("opacity", 0)
-                    .attr("class", "unselected")
-                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-                    .attr("class", "selected")
-                    .attr("opacity", 1.0)
-                    .data();
-
-                const x3 = d3
-                    .scaleLinear()
-                    .domain(d3.extent(visible, (d) => d.x))
-                    .nice()
-                    .range([margin.left, width - margin.right]);
-                const y2 = d3
-                    .scaleLinear()
-                    .domain(d3.extent(visible, (d) => d.y))
-                    .nice()
-                    .range([height - margin.bottom, margin.top]);
-                plot2
-                    .selectAll("image")
-                    .attr("opacity", 0)
-                    .attr("class", "unselected")
-                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-                    .attr("class", "selected")
-                    .attr("opacity", 1.0)
-                    .data(visible)
-                    .attr("xlink:href", (d) => d.img)
-                    .attr("x", (d) => x3(d.x))
-                    .attr("y", (d) => y2(d.y));
-            } else {
-                myimage.attr("class", "selected").attr("opacity", 1.0);
-            }
-            div.value = value;
-            svg.property("value", value).dispatch("input");
-        }
-        const brush = d3.brush().on("start brush end", brushed);
-
-        svg.call(brush);
-
-	
-	
-	
-	function brushselection({ selection }) {
-            let value = [];
-            if (selection) {
-                const [[x0, y0], [x1, y1]] = selection;
-
-                var visible = plot2
-                    .selectAll("image")
-                    .attr("opacity", 0)
-                    .attr("class", "unselected")
-                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
-                    .attr("class", "selected")
-                    .attr("opacity", 1.0)
-                    .data();
-
-            } else {
-                myimage.attr("class", "selected").attr("opacity", 1.0);
-            }
-            div.value = value;
-            svg.property("value", value).dispatch("input");
-        }
-	
-	const brushselector = d3.brush().on("start brush end", brushselection);
-
-        svg.call(brush);
-	
-	
-	
-	
-        const x2 = d3
-            .scaleLinear()
-            .domain(d3.extent(data, (d) => d.x))
-            .nice()
-            .range([margin.left, width - margin.right]);
-
-        const y2 = d3
-            .scaleLinear()
-            .domain(d3.extent(data, (d) => d.y))
-            .nice()
-            .range([height - margin.bottom, margin.top]);
-
-        svg.append("rect")
-            .attr("transform", `translate(\${width},0)`)
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("height", height + margin.top + margin.bottom)
-            .attr("width", width + margin.left)
-            .style("fill", "#F2F3F4")
-            .attr("stroke", "grey");
-
-        var plot2 = svg.append("g").attr("transform", `translate(\${width},0)`).attr("class", "plot2");
-
-        var plt = plot2
-            .selectAll(".selected")
-            .data(data)
-            .join("image")
-            .attr("xlink:href", (d) => d.img)
-            .attr("x", (d) => x2(d.x))
-            .attr("y", (d) => y2(d.y))
-            .attr("width", 60)
-            .attr("height", 60)
-            .attr("opacity", 0);
-
-        div.value = svg.selectAll("selected");
-    </script>
-</div>
-
-""")
-
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 GetSelected(text="Get Selection") = @htl("""
 	<div id="ok">
@@ -449,6 +261,8 @@ SampleView = @htl("""
 		var margin = ({top: 20, right: 30, bottom: 30, left: 40});
 	
 		const data = JSON.parse($(selectionjson))
+	
+		
 	
 		const svg = d3
 			.select("#sampleview")
@@ -711,8 +525,213 @@ begin
 	edges = getlargerew(CreateEdges(d_mnist, d_fmnist, γ, ewfilter=0.1),2);
 end;
 
+# ╔═╡ 239deeeb-b34f-4057-9752-4d6f5e0b916d
+begin
+	df[!,:pe] = edges[!,:pe]
+	df[!,:ex] = edges[!,:edges_x]
+	df[!,:ey] = edges[!,:edges_y]
+end;
+
+# ╔═╡ c5f10b93-4e80-49a5-9f95-fbc489449bde
+edjson = arraytable(edges)
+
+# ╔═╡ 2b880632-e9d0-40f8-8231-315ad2abc6b0
+nedges = [Dict(edges[i,:source] => [Dict("ex"=>edges[i,:edges_x],"ey"=>edges[i,:edges_y]),
+			Dict("ex"=>edges[i+1,:edges_x],"ey"=>edges[i+1,:edges_y])])
+			for i in 1:2:size(edges)[1]]
+
+# ╔═╡ 7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+Scatter = @htl("""
+<div>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.20.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+    <script>
+        let cell = currentScript.closest("pluto-cell");
+        cell.style.width = "1000px";
+    </script>
+    <div id="myvis"></div>
+
+    <script id="createplot">
+        var div = currentScript.parentElement;
+
+        var selection = 0;
+
+        var height = 300;
+        var width = 460;
+        var margin = { top: 20, right: 30, bottom: 30, left: 40 };
+
+        const data = JSON.parse($(dfjson));
+		const edges = JSON.parse($(json(nedges)));
+
+        const svg = d3
+            .select("#myvis")
+            .append("svg")
+            .attr("width", width * 2 + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
+
+        svg.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr("width", width + margin.left)
+            .style("fill", "white")
+            .attr("stroke", "grey");
+
+        const x = d3
+            .scaleLinear()
+            .domain(d3.extent(data, (d) => d.x))
+            .nice()
+            .range([0, width - 2 * margin.right]);
+
+        const y = d3
+            .scaleLinear()
+            .domain(d3.extent(data, (d) => d.y))
+            .nice()
+            .range([height - margin.bottom, margin.top]);
+
+        const color = d3.scaleOrdinal().domain(["mnist", "fmnist"]).range(["#440154ff", "#21908dff"]);
+		
+
+        var myimage = svg
+            .append("g")
+            .selectAll("image")
+            .data(data)
+            .join("image")
+            .attr("xlink:href", (d) => d.img)
+            .attr("x", (d) => x(d.x))
+            .attr("y", (d) => y(d.y))
+            .attr("width", 20)
+            .attr("height", 20)
+            .attr("opacity", 1);
+
+        function brushed({ selection }) {
+            let value = [];
+            if (selection) {
+                const [[x0, y0], [x1, y1]] = selection;
+
+                value = myimage
+                    .attr("opacity", 0.3)
+                    .attr("class", "unselected")
+                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+                    .attr("class", "selected")
+                    .attr("opacity", 1.0)
+                    .data();
+
+                var visible = plot2
+                    .selectAll("image")
+                    .attr("opacity", 0)
+                    .attr("class", "unselected")
+                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+                    .attr("class", "selected")
+                    .attr("opacity", 1.0)
+                    .data();
+
+                const x3 = d3
+                    .scaleLinear()
+                    .domain(d3.extent(visible, (d) => d.x))
+                    .nice()
+                    .range([margin.left, width - margin.right]);
+                const y2 = d3
+                    .scaleLinear()
+                    .domain(d3.extent(visible, (d) => d.y))
+                    .nice()
+                    .range([height - margin.bottom, margin.top]);
+                plot2
+                    .selectAll("image")
+                    .attr("opacity", 0)
+                    .attr("class", "unselected")
+                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+                    .attr("class", "selected")
+                    .attr("opacity", 1.0)
+                    .data(visible)
+                    .attr("xlink:href", (d) => d.img)
+                    .attr("x", (d) => x3(d.x))
+                    .attr("y", (d) => y2(d.y));
+            } else {
+                myimage.attr("class", "selected").attr("opacity", 1.0);
+            }
+            div.value = value;
+            svg.property("value", value).dispatch("input");
+        }
+        const brush = d3.brush().on("start brush end", brushed);
+
+        svg.call(brush);
+
+	
+	
+	
+	function brushselection({ selection }) {
+            let value = [];
+            if (selection) {
+                const [[x0, y0], [x1, y1]] = selection;
+
+                var visible = plot2
+                    .selectAll("image")
+                    .attr("opacity", 0)
+                    .attr("class", "unselected")
+                    .filter((d) => x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1)
+                    .attr("class", "selected")
+                    .attr("opacity", 1.0)
+                    .data();
+
+            } else {
+                myimage.attr("class", "selected").attr("opacity", 1.0);
+            }
+            div.value = value;
+            svg.property("value", value).dispatch("input");
+        }
+	
+	const brushselector = d3.brush().on("start brush end", brushselection);
+
+        svg.call(brush);
+	
+	
+	
+	
+        const x2 = d3
+            .scaleLinear()
+            .domain(d3.extent(data, (d) => d.x))
+            .nice()
+            .range([margin.left, width - margin.right]);
+
+        const y2 = d3
+            .scaleLinear()
+            .domain(d3.extent(data, (d) => d.y))
+            .nice()
+            .range([height - margin.bottom, margin.top]);
+
+        svg.append("rect")
+            .attr("transform", `translate(\${width},0)`)
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr("width", width + margin.left)
+            .style("fill", "#F2F3F4")
+            .attr("stroke", "grey");
+
+        var plot2 = svg.append("g").attr("transform", `translate(\${width},0)`).attr("class", "plot2");
+
+        var plt = plot2
+            .selectAll(".selected")
+            .data(data)
+            .join("image")
+            .attr("xlink:href", (d) => d.img)
+            .attr("x", (d) => x2(d.x))
+            .attr("y", (d) => y2(d.y))
+            .attr("width", 60)
+            .attr("height", 60)
+            .attr("opacity", 0);
+
+        div.value = svg.selectAll("selected");
+    </script>
+</div>
+
+""")
+
 # ╔═╡ 54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
-edges
+json(nedges)
 
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
@@ -729,14 +748,16 @@ edges
 # ╠═068369ca-a6db-4f01-b192-1256332202f0
 # ╟─b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
+# ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
 # ╠═c315a543-e9be-4b79-8449-b9175c923bb8
+# ╠═c5f10b93-4e80-49a5-9f95-fbc489449bde
 # ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
 # ╟─21b3b741-1ea1-49a4-a6ae-b22666f53e19
 # ╟─8feb1c33-ba6d-449a-8676-b1144d4d4312
 # ╟─3ce0657e-5487-43c9-a28c-7661c95a1486
 # ╟─c1c693c0-1c57-43c8-af20-9cd5e9c7d6af
 # ╟─742ef2ec-4c23-46e7-ad39-ff838ef156b1
-# ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
+# ╠═7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╠═95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═839f0087-5890-462d-8507-70b3c3db797d
@@ -761,3 +782,4 @@ edges
 # ╠═ad4fe979-f23e-4a68-a69b-b98d3406c90b
 # ╠═564c6127-b38b-4773-baa8-75e7a17dd677
 # ╠═54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
+# ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
