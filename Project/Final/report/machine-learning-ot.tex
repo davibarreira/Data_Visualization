@@ -1,0 +1,107 @@
+\newpage
+\chapter{Optimal Transport for Machine Learning}
+\label{ch:otml}
+
+Now that we've introduced both theoretical and the computational aspects of Optimal Transport,
+we can delve into its usage on Machine Learning.
+In this section, we start with an overview of the subject
+before going into detail of the applications themselves.
+This overview is aimed at providing an organized look at the whole landscape of applications.
+After that, we review the many methods developed in the literature. 
+We divide the section according to each learning task shown in Figure \ref{fig:MLCat}.
+Note that there is no single taxonomy that is agreed upon on Machine Learning, hence,
+its use in this work is mostly aimed on providing a cohesive way to present the different applications.
+
+\section{Overview - The Landscape of Applications}
+
+The field of Machine Learning is very broad and tackles many different problems, thus,
+OT has also been applied in different ways. Yet, there are
+mainly two categories in terms of how OT used in ML (recall Figure \ref{fig:OT_ML_Cat}).
+
+Optimal Transport is most frequently used as a metric.
+In ML, we are regularly working with probability distributions,
+hence, metrics such as Wasserstein are very helpful, since
+it metrizes weak convergence and preserves the geometric properties of the underlying space,
+producing meaningful distances even when the distributions do not share the same support.
+
+The usefulness of these properties comes in many ways. For example, in Generative Adversarial Network, the 
+model seeks to learn the latent distribution of the dataset, thus, the loss function consists in
+comparing the generated distribution versus the real dataset distribution. The original GAN introduced by
+\citet{goodfellow2014} uses the Jensen-Shannon Divergence (JSD)\footnote{$JSD(\mu || \nu):=
+\frac{1}{2} KL(\mu || \frac{\mu+\nu}{2}) +
+\frac{1}{2} KL(\nu || \frac{\mu+\nu}{2})$}
+as loss function, which is a symmetric
+version of the Kullback-Leibler divergence.
+
+A problem with such divergence is that when the supports of
+the distributions do not overlap, or the overlap is too small, the divergence converges to $\log 2$
+producing a gradient of zero.
+Hence, the model becomes difficult to train, as one usually relies on gradient descent to update the weights
+in the network. This is illustrated in Figure
+\ref{fig:wasserstein-jsd}\footnote{The JSD is scaled by 10 to improve the visibility of the plot.}.
+
+\begin{figure}[H]
+  \centering
+  \def\svgscale{0.6}
+  \includesvg[inkscapelatex=false]{Figures/wasserstein-jsd.svg}
+  \caption{Comparison between the Jensen-Shannon divergence and the 1-Wasserstein distance for two Gaussian
+  distributions $\mu$ and $\nu$. The image on the left illustrates how each of these distances change as the
+  distributions move apart.
+  On the right, we show two examples of $\mu$ and $\nu$, first when they are 3 units apart
+  and then when they are 12 units apart.}
+  \label{fig:wasserstein-jsd}
+\end{figure}
+
+In the scenario shown in Figure \ref{fig:wasserstein-jsd},
+while the JSD gradient quickly vanishes, the Wasserstein distance returns meaningful gradients in all cases.
+Thus, even when the distributions are very far apart, the network is still able to learn.
+This is one of the great advantages of models such as WGAN \citep{arjovsky2017wasserstein}.
+
+Besides been used as a loss functions, OT distances
+can also be used to measure the discrepancy between input datasets (e.g. \citet{alvarez2020geometric})
+and even between models themselves (e.g. \citet{li2020representation}).
+
+Yet, this flexibility comes at a cost. The use of distances such as Wasserstein requires that we solve
+an Optimal Transport problem, which, in the case of discrete metrics, corresponds to solving a Linear Program.
+This means that when training a model,
+we would need to solve a Linear Program before every gradient descent step,
+which is too costly for practical use.
+
+Many alternative metrics have been developed with the aim of approximating the Wasserstein
+distance, but with increased computational efficiency.
+Some of these alternative metrics were already introduced in Section \ref{sec:computational}.
+
+The other common application consists in using the actual
+optimal transport plan.
+The most prominent example is the use of the OT plan for dataset alignment
+for Transfer Learning (e.g. \citep{courty2014domain}). The idea consists in transporting the
+source dataset to the target dataset, in a way that a model trained on the transported source can be used in
+the target data. There are many variations to this idea, such as the addition of regularization to
+enforce that datasets with the same label are kept together.
+
+Transport plans are also used to calculate the OT barycenter. As explained in Section
+\ref{sec:barycenter}, the OT barycenter can be intuitively understood as a kind of averaging that
+preserves the ``shape'' of the distributions. It has been naturally employed in model ensembling methods
+\citep{dognin2019wasserstein}.
+
+The least common are ML algorithms that reformulate its original problem
+turning it into an Optimal Transport problem. In these situations, the proposed algorithms are usually
+quite unique, and the learning process usually involves the solution of an Optimal Transport problem.
+An example of this is the work of \citet{liutkus2019sliced}, where the authors reformulate the
+generative modeling problem turning it into a gradient flow problem. Another example of this is the 
+work of \citet{cuturi19raking}, where a the authors reformulate the problem of ranking as an Optimal Transport
+problem, and use entropic regularization to create a differentiable ranking operator.
+
+Figure \ref{fig:overview-ot-ml} summarizes on a single visualization
+how the 70 selected papers are distributed across the different taxonomies proposed
+(i.e. ML paradigm, OT Usage Type, OT Problem Formulation).
+
+\begin{figure}[H]
+  \centering
+  \def\svgscale{0.57}
+  \includesvg[inkscapelatex=false]{Figures/overview-ot-ml.svg}
+  \caption{Distribution of the selected papers across ML paradigm, OT Usage Type and
+  OT Problem Formulation.
+  }
+  \label{fig:overview-ot-ml}
+\end{figure}

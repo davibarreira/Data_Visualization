@@ -1,0 +1,749 @@
+\newpage
+\chapter{Optimal Transport Theory}
+\label{ch:ottheory}
+
+The field of Optimal Transport has grown quite substantially in recent years\footnote{\citet{villani2008optimal}
+is roughly a thousand pages of theoretical results on OT.},
+and going through the theory in order understand how it applies to Machine Learning can be a challenging task for
+ML researchers not acquainted with the field.
+Hence, we have filtered the main theoretical
+results necessary for understanding the applications of Optimal Transport to Machine Learning
+presented in this dissertation.
+
+This section is mainly based on the book
+``Optimal Transport for Applied Mathematicians'' by
+\citet{santambrogio2015optimal}.
+
+\section{A Brief Introduction to Optimal Transport}
+
+Before delving into formal definitions, theorems and proofs, let's give an informal overview of what is
+Optimal Transport, what are the main results we are interested in and how they relate to Machine Learning applications.
+
+The main subject of study of Optimal transport theory is the problem of optimally transporting
+quantities from one configuration to another given a cost function. Although it may seem like a very narrow subject,
+this seemingly simple problem has a plethora of variations and can be significantly hard not only to solve,
+but to even prove that a solution exists.
+
+The origin of the field of Optimal Transport is usually
+attributed to Gaspard Monge (1746-1818), a French mathematician, who was interested in the problem
+of ``what is the optimal way to transport soil extracted from one location and move to another where it will be used,
+for example, on a construction?''\footnote{This is not a quote from Monge.}\citep{villani2008optimal}.
+Monge studied this problem restricting the transportation assignment to deterministic maps, i.e. the soil
+extracted from location $x$ should be moved entirely to an specific location $y$ (see Figure \ref{fig:mongeproblem}),
+a condition that is known as ``non-mass splitting". Monge also considered that the cost of transportation
+was proportional to the distance traveled (i.e. $c(x,y) = |x-y|$), but different cost functions can be used.
+
+Although it has been considered the founding problem of Optimal Transport, the Monge Problem is not actually the most
+common formulation when it comes to applications in Machine Learning. The formulation most used when referring
+to the Optimal Transport problem is actually due to Leonid Kantorovich (1912-1986), a Russian mathematician.
+Kantorovich proposed a relaxation of the non-mass splitting condition, such that the optimal transportation
+solution could now transport the mass ``excavated'' from $x$ to many locations
+(see Figure \ref{fig:kantorovichproblem}).
+
+\begin{figure}[H]
+  \centering
+  \def\svgscale{0.7}
+  \includesvg[inkscapelatex=false]{Figures/mongeproblem.svg}
+  \caption{The figure illustrates the original Monge Problem, where all the mass is excavated from location
+  $x$ is transported to a deterministic location $y$. The transport assignment map is represented by the arrow in green.}
+  \label{fig:mongeproblem}
+\end{figure}
+
+The transportation assignment that solves the Monge Problem is called the Optimal Transport \textbf{map},
+while the solution to the Kantorovich Problem is called the Optimal Transport \textbf{plan}. As we will show
+in the following sections, if the Monge Problem has a solution so does the Kantorovich Problem,
+but the contrary is not always true. From here
+on out, every time we refer to the OT problem, we'll be implicitly referring to the Kantorovich formulation, unless
+stated otherwise.
+
+Although the original OT problem is about soil excavation, we can apply it to abstract mathematical objects
+such as probability distributions. Consider two 1-dimensional probability distributions
+$\mu$ and $\nu$, and define an Optimal Transport problem where the objective is to transport
+distribution $\mu$ to $\nu$ with $c(x,y) = |x-y|^p$ for $p \in [1,+\infty)$.
+Note that, if the OT problem has a solution, then there exists a minimum total cost. This minimum
+cost of transporting $\mu$ to $\nu$ is known as the Wasserstein distance ($W_p(\mu,\nu)$).
+The use of the Wasserstein distance to measure the discrepancy between probability distributions
+is one of the main applications of OT on Machine Learning.
+
+\begin{figure}[H]
+  \centering
+  \def\svgscale{0.7}
+  \includesvg[inkscapelatex=false]{Figures/kantorovichproblem.svg}
+  \caption{The figure illustrates the Optimal Transport Problem with the Kantorovich relaxation.
+  The transportation assignment now can split the mass in blue, transporting it to many positions.}
+  \label{fig:kantorovichproblem}
+\end{figure}
+
+
+If we want to use the Wasserstein distance, then many questions have to be answered:
+\begin{itemize}
+  \item Does the transport plan exist?
+  \item If the transport plan exists, how does one obtain it and then calculates the Wasserstein distance?
+  \item If the Wasserstein distance between two probability distributions goes to zero,
+  does this imply convergence in probability?
+\end{itemize}
+
+The field of Optimal Transport has addressed these types of questions, thus the importance of understanding
+the theory before using it on real applications.
+
+We end this brief introduction to OT with a description of
+the contents addressed in each of the following sections:
+\begin{enumerate}[(i)]
+  \item \textbf{Monge Problem} - We formally define the Monge Problem;
+
+  \item \textbf{Kantorovich Problem} - We formally define the Kantorovich Problem and
+  the notion of \textit{relaxation}. Then, we prove that under certain conditions
+  the Kantorovich Problem is a relaxation of the Monge Problem;
+
+  \item \textbf{On the Existence of Transport Plans} - This section focuses on
+  the existence of solutions to the Optimal Transport problem.
+  We prove the existence for compact
+  metric spaces with continuous cost functions, and leave
+  the proof of the more general cases to the Appendix;
+  
+  \item \textbf{Duality Results} - The Kantorovich Problem
+  admits a dual formulation, which, under some conditions, yields the same
+  optimal cost as the primal formulation (i.e. Strong Duality). 
+  This section focuses on formally introducing the Dual Problem and stating the conditions
+  under which Strong Duality holds.
+  We close the section with the celebrated Kantorovich-Rubinstein Duality
+  Theorem, which is used in Machine Learning applications such as WGANs;
+
+  \item \textbf{Wasserstein Distance} - We formally define the Wasserstein distance and present
+  some of its properties. Next, we state topological results of the Wasserstein space.
+  We end the section with comments on the properties of the Wasserstein distance and why
+  it is useful to fields like Machine Learning.
+\end{enumerate}
+
+
+\newpage
+\section{Monge Problem}
+
+Let's start by providing some definitions that will be used throughout this section.
+\begin{definition}
+  Given $(\Omega,\mathcal F)$ where $\mathcal F$ is a $\sigma$-algebra,
+  then, $\mu: \mathcal F \to [0,+\infty]$ is a measure if:
+  \begin{enumerate}[i)]
+    \item $\mu(\varnothing)=0$
+    \item $(A_n)_{n\in \mathbb N} \subset \mathcal F$ with
+          $A_j \cap A_i = \varnothing ,\ \forall i,j \in \mathbb N\implies
+            \mu(\cup_{n \in \mathbb N}A_n) = \sum_{n \in \mathbb N}\mu(A_n)$
+  \end{enumerate}
+  We say that $\mu$ is a probability measure if besides the two
+  properties above, we also have $\mu(\Omega) = 1$.
+\end{definition}
+
+\begin{definition}
+  We call $\mathcal P(X)$ the space of probability measures defined
+  on $(X,\mathcal F)$, where the $\sigma$-algebra $\mathcal F$
+  is implicit and usually refers to the Borel $\sigma$-algebra.
+\end{definition}
+
+\begin{definition}(Pushforward)
+  Let $(X,\mathcal F)$ and $(Y, \mathcal G)$ be measurable spaces, $T : X \to Y$ a $\mathcal{F / G}$-measurable map
+  and $\mu \in \mathcal P(X)$. We call $T_\# \mu$ the
+  pushforward of $\mu$, where:
+  \begin{equation}
+    T_\#\mu(B) = \mu(T^{-1}(B)),\quad \forall B \in \mathcal G
+  \end{equation}
+\end{definition}
+
+
+With these definitions, we can state the so called Monge Problem,
+which is known as the motivating problem that gave birth to the field
+of Optimal Transport.
+
+\begin{definition} (Monge Problem)
+  Given two probability measures $\mu \in \mathcal P(X)$,
+  $\nu \in \mathcal{P}(Y)$ and a cost function
+  $c:X\times Y \to[0,+\infty]$, solve:
+  \begin{flalign}
+    (MP) &&
+    \inf
+    \left\{
+    \int_{X} c(x,T(x))d\mu \quad : \quad
+    T_\# \mu = \nu
+    \right\}&&
+  \end{flalign}
+
+\end{definition}
+
+In the Monge Problem, no mass can be split. Therefore, one can easily
+come up with situations in which there is no solution to the problem,
+as shown in \ref{fig:monge_map_example}. A viable solution $T$ to MP
+is called a \textbf{Transport Map}.
+\begin{figure}[H]
+  \centering
+  \def\svgscale{0.8}
+  \includesvg[inkscapelatex=false]{Figures/monge_map_example.svg}
+  \caption{Example of two Optimal Transport Problems. On the left, there exists an optimal transport
+    plan, while on the right there is no possible solution.}
+  \label{fig:monge_map_example}
+\end{figure}
+
+\section{Kantorovich Problem}
+
+The Monge Problem is hard to solve due to its constraint
+on $T$ which is not closed under weak convergence \citep{santambrogio2015optimal}, and
+it might not have a solution even for ``simple'' probability distributions
+(e.g. Figure \ref{fig:monge_map_example}). Because of these limitations,
+we focus the relaxed version, the so called 
+Kantorovich Problem. This relaxation consists of allowing mass to be
+split, thus making the set of possible solutions larger.
+Before stating the Kantorovich Problem, let's
+introduce some more definitions.
+
+
+\begin{definition}(Projection and Marginal)
+  Let $\gamma \in \mathcal P(X\times Y)$ and $\pi_X: X \times Y \to X$
+  such that $\pi_X(x,y) = x, \forall (x,y) \in X\times Y$. Hence,
+  we say that $\pi_X$ is the projection operator on $X$. We then call
+  $(\pi_X)_\#\gamma = \mu$ the marginal distribution of $\gamma$ with
+  respect to $X$.
+
+  Equivalently, if for every measurable set $A \subset X$, we have
+  $\gamma(A\times Y) = \mu(A)$, then $\mu$ is the marginal of $\gamma$
+  with respect to $X$.
+
+\end{definition}
+
+\begin{definition} (Coupling)
+  Let $(X,\mu)$ and $(Y,\nu)$ be probability spaces. For
+  $\gamma \in \mathcal{P}(X\times Y)$, we say that $\gamma$
+  is a coupling of $(\mu,\nu)$ if $(\pi_X)_\# \gamma = \mu$
+  and $(\pi_Y)_\# \gamma = \nu$. Also, we call $\Pi(\mu,\nu)$
+  the set of \textbf{Transport Plans}:
+  \begin{equation}
+    \Pi(\mu,\nu) :=
+    \left \{
+    \gamma \in \mathcal{P}(X \times Y) \ :
+    \ (\pi_X)_\# \gamma = \mu \quad
+    \text{and} \quad
+    (\pi_Y)_\# \gamma = \nu
+    \right \}
+  \end{equation}
+\end{definition}
+
+Finally, we can state the Kantorovich Problem.
+
+\begin{definition} (Kantorovich Problem)
+  Given two probability measures $\mu \in \mathcal P(X)$,
+  $\nu \in \mathcal{P}(Y)$ and a cost function
+  $c:X\times Y \to[0,+\infty]$, solve:
+  \begin{flalign}
+    (KP) &&
+    \inf
+    \left\{
+    \int_{X \times Y} c(x,y)d\gamma \ : \
+    \gamma \in \Pi(\mu,\nu)
+    \right\}&&
+    \label{eq:KP2}
+  \end{flalign}
+  \label{def:KP}
+\end{definition}
+
+One can prove that indeed every time the Monge Problem has a
+solution, so will the Kantorovich Problem. More than that,
+the minimal cost of both problems will indeed coincide.
+Note that when the Monge Problem has a solution $T:X\to Y$, then
+$\gamma	= (id,T)_\# \mu$ is a solution to the Kantorovich Problem.
+
+We stated in the beginning of this section that (KP) was a relaxed
+version of (MP). Let's now formalize this concept.
+
+\begin{definition}(Lower Semi-Continuity)
+  A function $f:X \to \mathbb R$ is lower semi-continuous (l.s.c) if
+  \begin{equation}
+    \forall x \in X, \ f(x) \leq
+    \underset{x_n\to x}{\liminf}f(x_n)
+  \end{equation}
+  \label{def:lsc}
+\end{definition}
+
+\begin{definition}(Relaxation)
+  Given a metric space X and
+  functional $F:X \to\mathbb R \cup \{+\infty\}$ bounded below. We
+  call $\bar F : X \to \mathbb R \cup \{+\infty\}$ a of relaxation
+  of $F$ if:
+  \begin{equation}
+    \bar F(x) := \inf \left \{
+    \liminf_n F(x_n) \ : \ x_n \to x
+    \right\}
+  \end{equation}
+  Hence, $\bar F$ is the maximal functional $G$ where $G$ is
+  lower semi-continuous and $G \leq F$.
+\end{definition}
+
+Figure \ref{fig:relaxation_ex}
+illustrates an example of a relaxation. As a
+consequence of this definition, $\inf_x F = \inf_x \bar F$. Therefore,
+if we can prove that Kantorovich Problem is a relaxation of
+the Monge  Problem, we would get that
+$\inf \text{(KP)} = \inf \text{(MP)}$.
+
+To prove that indeed (KP) is a relaxation of (MP) under some conditions,
+we use the following theorem, for which the complete proof can be found
+on \citet{santambrogio2015optimal}.
+
+\begin{figure}[H]
+  \centering
+  \includesvg[inkscapelatex=false]{Figures/relaxation_example.svg}
+  \caption{Example of a function F and it's relaxation.}
+  \label{fig:relaxation_ex}
+\end{figure}
+
+\begin{theorem}(Santambrogio 1.32)
+  Let $\Omega \subset \mathbb R^d$ compact, with
+  $c:\Omega\times \Omega: \to [0,+\infty]$ continuous and
+  $\mu \in \mathcal P(\Omega)$ atomless (i.e., for every
+  $x \in \Omega$, we have $\mu(\{x\}) = 0)$.
+  Then, the set of plans
+  $\gamma_T = (id, T)_\# \mu$ induced by the map $T$ is dense in
+  $\Pi(\mu,\nu)$.
+  \label{thm:dense_mp}
+\end{theorem}
+
+We can now prove the following:
+
+\begin{theorem}
+  For $\Omega \subset \mathbb R^d$ compact,
+  $c:\Omega\times \Omega: \to [0,+\infty]$ continuous and
+  $\mu \in \mathcal P(\Omega)$ atomless. Then, (KP) is a relaxation
+  of (MP).
+\end{theorem}
+\begin{prf}
+  First, let's restate the Monge Problem as
+  \begin{equation*}
+    \inf \{J(\gamma) \ : \ \gamma \in \Pi(\mu,\nu)\}
+  \end{equation*}
+  Where, $\gamma_T := (id,T)_\# \mu$, and
+  \begin{equation*}
+    J(\gamma)  =
+    \begin{cases}
+      K(\gamma)=
+      \int_{\Omega} c(x,T(x)) \ d\mu =
+      \int_{\Omega \times \Omega}c \ d\gamma_T,
+              & \text{if } \gamma = \gamma_T \\
+      +\infty & \text{otherwise}
+    \end{cases}
+  \end{equation*}
+
+  Note that indeed minimizing $J$ is equal to minimizing the
+  Monge Problem, since we only consider the transport plans
+  $\gamma_T$ that coincide with the cost when using a transport map
+  $T$.
+
+  For $K(\gamma) = \int_{\Omega \times \Omega} c \ d\gamma$,
+  we can show that $K$ is continuous with respect to weak convergence (see \ref{def:weakconv}), since
+  \begin{align*}
+    \gamma_n \rightharpoonup \gamma \iff
+    \forall f \text{ continuous}, \int f d\gamma_n \to \int f d\gamma
+    \implies
+    \\
+    \implies
+    K(\gamma_n) = \int_{\Omega \times \Omega} c \ d\gamma_n \to
+    K(\gamma)\text{, for } c \text{ continuous.}
+  \end{align*}
+
+  Also, by the definition of $J$, for any $\gamma \in \Pi(\mu,\nu)$, then $K(\gamma) \leq J(\gamma)$.
+
+  By Theorem \ref{thm:dense_mp}, for any
+  $\gamma \in \Pi(\mu,\nu)$ we can create a sequence of
+  $\gamma_{T_n}\rightharpoonup \gamma$. And by the continuity
+  of $K$ with respect to weak convergence, we have that $J(\gamma_{T_n})=K(\gamma_{T_n})\to
+    K(\gamma)$. Therefore:
+  \begin{equation*}
+    \forall \gamma \in \Pi(\mu,\nu), \exists (\gamma_{T_n})\ : \
+    \liminf_{n\to +\infty} J(\gamma_{T_n})= K(\gamma)
+  \end{equation*}
+  Hence,
+  \begin{equation*}
+    \inf\{
+    \liminf_{n\to +\infty} J(\gamma_{n}) \ :
+    \ \gamma_n \rightharpoonup \gamma
+    \}\leq K(\gamma) \leq J(\gamma)
+  \end{equation*}
+
+  We can conclude that
+  \begin{equation*}
+    \inf\{
+    \liminf_{n\to +\infty} J(\gamma_{n}) \ :
+    \ \gamma_n \rightharpoonup \gamma
+    \} = K(\gamma)
+  \end{equation*}
+
+\end{prf}
+
+
+\section{On the Existence of Transport Plans}
+As stated before, it is not trivial to know when the Monge Problem
+indeed has a solution. It is easier to work with the Kantorovich
+Problem. In this section we present some results that relate
+to the existence of Optimal Transport Plans for the Kantorovich Problem.
+We start with more restrictive conditions and move to the more general case.
+
+\begin{theorem}(Santambrogio 1.4)
+  Let $X$ and $Y$ be compact metric spaces.
+  Given $\mu\in \mathcal{P}(X)$, $\nu \in \mathcal P(Y)$ and
+  $c:X\times Y \to[0,+\infty]$, if $c$ is continuous, then
+  (KP) admits a solution.
+  \label{thm:Santambrogio1.4}
+\end{theorem}
+\begin{prf}
+  We begin by using the notion of weak convergence to characterize
+  continuity of functions defined on probability measures.
+
+  Note that since $c$ is continuous and $(X \times Y)$ is compact,
+  then $c$ is continuous and bounded. Also,
+  $K(\gamma) = \int_{X\times Y}c \ d\gamma$ is continuous with respect to weak
+  convergence, since
+  $\gamma_n \rightharpoonup \gamma$, if, and only if, for every $f$ continuous
+  and bounded function, $\int f \ d\gamma_n \to \int f \ d\gamma$.
+
+  Now, let's \textbf{show that $\Pi(\mu,\nu)$ is compact}.
+  Take $\gamma_n \in \Pi(\mu,\nu)$. Note that $\gamma_n$ is tight (\ref{def:tight}),
+  because $(X\times Y)$ is compact. Then, by Prokhorov Theorem \ref{Prokhorov},
+  $\exists \gamma_{n_k} \rightharpoonup \gamma$.
+
+  Take $\phi(x) \in C_b(X)$ and $\psi(y) \in C_b(Y)$. Therefore,
+  \begin{equation*}
+    \begin{split}
+      \int \phi(x) \ d\mu
+      \underset{Cor.\ref{cor_marginals}}{=}
+      \int\phi(x)\ d\gamma_{n_k}
+      \to
+      \int \phi(x) \ d\gamma \\
+      \int \psi(y) \ d\nu
+      \underset{Cor.\ref{cor_marginals}}{=}
+      \int\psi(y)\ d\gamma_{n_k}
+      \to
+      \int \psi(y) \ d\gamma
+    \end{split}
+  \end{equation*}
+  % \ref{cor_marginals}
+
+  We conclude that $\gamma \in \Pi(\mu,\nu)$, which implies that
+  $\Pi(\mu,\nu)$ is compact. Finally, since $K(\cdot)$ is continuous with respect to weak convergence
+  and defined on a compact set, it attains a minimum. In other words,
+  there exists a transport plan $\gamma$ that minimizes the Kantorovich
+  Problem.
+
+\end{prf}
+
+
+\begin{restatable}{theorem}{existencecomplsc}(Santambrogio 1.5)
+  \label{teo1.5}
+  Let $X$ and $Y$ be compact metric spaces.
+  Given $\mu\in \mathcal{P}(X)$, $\nu \in \mathcal P(Y)$ and
+  $c:X\times Y \to[0,+\infty]$, if $c$ is lower semi-continuous, then
+  (KP) admits a solution.
+\end{restatable}
+
+\begin{restatable}{theorem}{existencepolish}(Santambrogio 1.7)
+  Let $X$ and $Y$ be Polish (complete and separable) metric spaces.
+  Given $\mu\in \mathcal{P}(X)$, $\nu \in \mathcal P(Y)$ and
+  $c:X\times Y \to[0,+\infty]$, if $c$ is lower semi-continuous then
+  (KP) admits a solution.
+  \label{thm:existanceKPpolish}
+\end{restatable}
+
+The proof for these two theorems can be found in the Appendix \ref{ap:ot}.
+
+\section{Duality of the Kantorovich Problem}
+
+We begin this section introducing the notion of the Dual formulation
+for the Kantorovich Problem, followed by 
+the definition of $c$-transforms.
+Next, we state the main Duality Theorems without the proofs,
+which can be found in the Appendix \ref{ap:ot}. We close the section
+with the celebrated Kantorovich-Rubinstein Duality Theorem.
+
+The Kantorovich Problem (\ref{def:KP}) is equivalent to:
+\begin{align}
+  \inf_{\gamma \in \mathcal M_+(X\times Y)}
+  \int_{X \times Y} c(x,y)d\gamma &+
+  \sup_{(\phi,\psi) \in B}\left\{
+  \int_X \phi(x) \ d\mu \right.
+  \nonumber
+  \\
+  &+ \int_Y \psi(y) \ d\nu \left.
+  - \int_{X\times Y} \phi(x) + \psi(y) \ d\gamma
+    \right \}
+  \label{eq:KP2}
+\end{align}
+Where $B := \{\phi \in C_b(X) \ \mathrm{and} \ \psi \in C_b(Y)\}$.
+The Dual Problem consists of 
+exchanging the order of the $\inf$ and the $\sup$,
+for the Kantorovich Problem reformulated according:
+By Lemma \ref{lem:KP2}, we can reformulate (KP)
+With (KP) reformulated, the Dual Problem consists of
+exchanging the order
+of the $\inf$ and the $\sup$:
+\begin{itemize}
+  \item \textbf{Primal}:
+        \begin{equation}
+          \inf_{\gamma \in \mathcal M_+(X\times Y)}
+          \sup_{(\phi,\psi) \in B}
+          \int_{X \times Y} c \ d\gamma +
+          \int_X \phi \ d\mu + \int_Y \psi \ d\nu -
+          \int_{X\times Y} \phi \oplus \psi \ d\gamma
+        \end{equation}
+
+  \item \textbf{Dual}:
+        \begin{equation}
+          \sup_{(\phi,\psi) \in B}
+          \inf_{\gamma \in \mathcal M_+(X\times Y)}
+          \int_{X \times Y} c \ d\gamma +
+          \int_X \phi \ d\mu + \int_Y \psi \ d\nu -
+          \int_{X\times Y} \phi \oplus \psi \ d\gamma
+        \end{equation}
+\end{itemize}
+
+Note that in the Dual formulation, we can rewrite it as:
+\begin{equation}
+  \sup_{(\phi,\psi)\in B}
+  \int_X \phi \ d\mu + \int_Y \psi \ d\nu -
+  \inf_{\gamma \in \mathcal M_+(X\times Y)}
+  \int_{X\times Y} c - (\phi \oplus \psi) \ d\gamma
+\end{equation}
+
+If there exists an $A$ such that for all $\forall (x,y) \in A, \ \phi(x) + \psi(y) \geq c(x,y)$, then
+$\inf_\gamma \int c - (\phi \oplus \psi) \ d\gamma = -\infty$
+since we can choose any $\gamma \in \mathcal M_+(X\times Y)$.
+
+Therefore, we can formally state the Dual Problem as:
+\begin{definition}
+  Given $\mu \in \mathcal P(X)$, $\nu \in \mathcal P (Y)$ and
+  a cost $c:X \times Y \to \mathbb R_+$. The
+  Dual Problem is given by
+\end{definition}
+\begin{flalign}
+  \mathrm{(DP)} &&
+  \sup \left \{
+  \int_X \phi \ d\mu + \int_Y \psi \ d\nu \ :
+  \phi \in C_b(X) \ , \psi \in C_b(Y) \ ,
+  \ \phi \oplus \psi \leq c
+  \right \}
+  &&
+  \label{eqt:dualproblem}
+\end{flalign}
+
+We call \textbf{Weak Duality} if
+$\mathrm{(DP)} \leq \mathrm{(KP)}$, and we call \textbf{Strong Duality}
+if $\mathrm{(DP)} = \mathrm{(KP)}$.
+When Strong Duality is true, the functions $\phi, \psi$ that maximize the Dual Problem
+are called the \textbf{Kantorovich Potentials}.
+One can easily prove that for (KP), the Weak Duality is always true (Lemma \ref{lem:weakdual}).
+The more interesting question is ``When is Strong Duality true?''.
+
+Before stating the main theorems regarding Strong Duality, we must introduce the concept
+of $c$-transform.
+
+\begin{definition}(c-Transform)
+  Given $f: X \to \overline{\mathbb R}$, and
+  $c:X\times Y \to \overline{\mathbb R}$,
+  the $c$-transform of $f$ is:
+  \begin{equation}
+    f^c(y) := \inf_x c(x,y) - f(x)
+  \end{equation}
+  Function $f^c$ is also called the $c$-conjugate of $f$. Moreover,
+  we say that $f$ is $c$-concave if
+  $\exists \ g:Y\to \overline{\mathbb R}$
+  such that $g^c(x) = f(x)$.
+  \label{def:c-transform}
+
+  Note that the $c$-transform is a generalization of the
+  Legendre-Fenchel transform, which is defined as:
+  \begin{equation}
+    f^*(y) := \sup_x x \cdot y - f(x)
+  \end{equation}
+\end{definition}
+
+\begin{restatable}{theorem}{dualthmcomp}
+  For $X$ and $Y$ compact metric spaces, and $c:X \times Y \to
+    \overline{\mathbb R}$ continuous. Then, $\max\mathrm{(DP)} = \mathrm{\min(KP)}$,
+    and DP admits a solution $(\phi,\phi^c)$.
+  \label{thm:compactstrongduality}
+\end{restatable}
+
+\begin{restatable}{theorem}{dualthmpolish}
+  For $X$ and $Y$ Polish spaces and $c:X\times Y \to \mathbb R$ uniformly continuous and bounded. Then,
+  (DP) admits a solution $(\phi,\phi^c)$ and $\mathrm{\max(DP)}=\mathrm{\min (KP)}$.
+  \label{thm:polishStrongDuality}
+\end{restatable}
+
+One cost that is of special interest is the quadratic cost $\frac{1}{2} |x-y|^2$. Note that
+this cost is neither bounded nor uniformly continuous for non-compact metric spaces. Hence, the previous
+theorems do not address it. But one can still prove that Strong Duality is true for such case.
+
+\begin{restatable}{theorem}{dualthmquadratic}(Santambrogio 1.40)
+  Let $\mu, \nu \in \mathcal P (\mathbb R^d)$, with $c(x,y) = \frac{1}{2} |x-y|^2$. Suppose that
+  $\int|x|^2 d\mu, \int|y|^2 d\nu < +\infty$\footnote{This is
+  Theorem 1.40 in \citet{santambrogio2015optimal}, but note that there is a small typo in the book,
+    where it states $\int|x|^2 dx, \int|y|^2 dy < + \infty$ instead of the correct $\int|x|^2 d\mu, \int|y|^2 d\nu < +\infty$.}.
+    Instead of the original Dual Problem, consider the
+  following formulation:
+  \begin{flalign}
+    \mathrm{(DP')} &&
+    \sup \left \{
+    \int_{\mathbb R^d} \phi \ d\mu + \int_{\mathbb R^d} \psi \ d\nu \ :
+    \phi \in L ^1(\mu) \ , \psi \in L ^1(\nu) \ ,
+    \ \phi \oplus \psi \leq c
+    \right \}
+    &&
+    \label{eqt:dualproblemvar}
+  \end{flalign}
+  Therefore, (DP') admits a solution $(\phi,\psi)$ and $\mathrm{\max (DP')} = \mathrm{\min (KP)}$.
+\end{restatable}
+
+\vspace{5mm}
+The most general result regarding Strong Duality is the following:
+\begin{restatable}{theorem}{dualthmstronger}(Santambrogio 1.42)
+  For $X$ and $Y$ Polish spaces and $c:X\times Y \to \mathbb R\cup \{+\infty\}$ l.s.c and bounded from below. Then,
+  $\mathrm{\sup(DP)}=\mathrm{\min (KP)}$.
+  Note that in this theorem, one cannot guarantee the existence of the $(\phi,\psi)$ that maximize the Dual Problem.
+  \label{thm:strongerDuality}
+\end{restatable}
+
+Note that under the conditions of Theorem \ref{thm:strongerDuality}, one cannot guarantee the existence
+of the optimal Kantorovich Potentials.
+
+If the cost $c(x,y)$ is actually a distance metric (Def. \ref{def:metric}),
+then we can prove the following result:
+\begin{restatable}{lemma}{cconclip}
+  Let $X$ be a metric space, and $c:X \times X \to \mathbb{R}$, where $c$ is a distance metric. Therefore,
+  a function $f:X \to \mathbb{R}$ is $c$-concave if and only if it is Lipschitz continuous with a constant
+  less than 1 with respect to the distance $c$.
+  We call $\text{Lip}_1^{(c)}$ this set of Lipschitz functions with constant less than 1. Moreover,
+  $f^c = -f$.
+  \label{thm:cConcaveLip1}
+\end{restatable}
+
+Lastly, using Theorem
+\ref{thm:strongerDuality} and Lemma \ref{thm:cConcaveLip1}, one obtains the famous
+Kantorovich-Rubinstein Duality:
+
+\begin{theorem}(Kantorovich-Rubinstein)
+
+  Let $(X,d)$ be a Polish space with metric $d$, and cost function $c(x,y) = d(x,y)$.
+  Then, for $\mu, \nu \in \mathcal P(X)$, the Kantorovich Problem
+  is equivalent to
+  \begin{equation}
+      \sup \left \{
+      \int_X \phi \ d\mu - \int_X \phi \ d\nu \ :
+      \phi \in Lip_1(X)
+      \right \}
+  \end{equation}
+  \label{thm:Kantorovich-Rubinstein}
+\end{theorem}
+
+\section{Wasserstein Distance}
+
+In this section we focus on how the minimal transport cost can be used as a distance metric
+in the space of probability measures.
+
+\begin{definition}(Probability space with p-Moments)
+  Let $(X,d)$ be a metric space with $ p \in [1,+\infty)$.
+  \begin{equation}
+    \mathcal P_p(X) := \{
+         \mu \in \mathcal P(X): \int_{X \times X} d(x,y)^p \ d \mu(x) d \mu(y) < +\infty
+      \}
+  \label{eq:Pp}
+  \end{equation}
+  Note that this is equivalent to the set of probability measures such that $\int_X d(x,x_0) \ d\mu<+\infty$
+  for every $x_0 \in X$. The proof of this statement can be found
+  in \citet{garling2018analysis} Proposition 21.1.1.
+\end{definition}
+
+\begin{definition}(Wasserstein Distance)
+
+  Let $(X,d)$ be a Polish metric space, with $c:X \times X \to \mathbb R$ such that $c(x,y)=d(x,y)^p$, and
+  $p \in [1,+\infty)$.
+  For $\mu,\nu \in \mathcal P_p(X)$, the Wasserstein Distance is given by:
+  \begin{equation}
+    W_p(\mu,\nu) :=
+    \left(
+    \inf_{\gamma \in \Pi(\mu,\nu)}
+    \int_{X \times X} d(x,y)^p \ d\gamma
+    \right)^{1/p}
+    \label{def:Wasserstein}
+  \end{equation}
+  Note that the restriction to $\mu,\nu \in \mathcal P_p(X)$ is necessary for $W_p$ to be a distance metric.
+  Moreover, for $p=1$, then $c(x,y) = d(x,y)$ is a metric on $X$, therefore, for $X$ Polish, one can
+  use Kantorovich-Rubinstein's Duality Theorem \ref{thm:Kantorovich-Rubinstein} to obtain:
+  \begin{equation}
+    W_1(\mu,\nu) =
+    \sup_{\phi \in Lip_1} \int_X f d (\mu - \nu)
+  \end{equation}
+\end{definition}
+
+\begin{restatable}{proposition}{wmetric}
+  $W_p(\cdot,\cdot)$ is a metric on $\mathcal P_p(X)$.
+\end{restatable}
+
+\begin{definition} (Wasserstein Space)
+  For a Polish space $X$, we call $\mathcal P_p(X)$ a Wasserstein space if it is endowed with
+  the p-Wasserstein metric. Note that is also common to see this space symbolized by $\mathcal W_p(X)$.
+\end{definition}
+
+\begin{restatable}{proposition}{ineqw}
+  For a bounded Polish space $X$, $p \in [1,+\infty)$, $\mu,\nu \in \mathcal P_p(X)$ and $M\in \mathbb R_+$, then
+  \begin{equation}
+    W_1(\mu,\nu) \leq W_p(\mu,\nu) \leq MW_1(\mu,\nu)^{1/p}
+  \end{equation}
+  \label{prop:ineqwasserstein}
+\end{restatable}
+
+Next, let's present some of the topological properties of such space.
+
+\begin{restatable}{theorem}{compwconv}
+  Let $(X,d)$ be a Polish compact space with $\mu_n,\mu \in P_p(X)$ and
+  $p \in [1,+\infty)$, then $W_p(\mu_n,\mu)\to 0 \iff \mu_n \rightharpoonup \mu$.
+  \label{thm:compactwassersteinconv}
+\end{restatable}
+
+
+\begin{theorem}
+
+  For $(X,d)$ a Polish metric space, $\mu_n,\mu \in \mathcal P_p(X)$ and $x_0 \in X$. Then
+  \begin{equation}
+    W_p(\mu_n,\mu) \to 0 \iff \int_X d(x,x_0)^p d\mu_n \to \int_X d(x,x_0)^p d\mu
+    \text{ and } \mu_n \rightharpoonup \mu.
+  \end{equation}
+  \label{thm:polishwmetrize}
+\end{theorem}
+
+Let's just put some words on these last results we introduced.
+We showed that the p-Wasserstein distance metrizes weak convergence
+of probability measures in the space $\mathcal P_p(X)$, with $(X,d)$ a Polish space.
+Such property is very useful and is not present in many other commonly used distances such as
+Total Variation and the Kullback-Leibler Divergence.
+
+Yet, there are many other ways to metrize weak convergence, such as Prokhorov's distance and bounded
+Lipschitz distance. So, besides this \textit{metrization}, \citet{villani2008optimal}
+gives the following reasons that make $W_p$ such an interesting metric:
+\begin{enumerate}[(i)]
+  \item Its definition makes it a natural choice in OT problems;
+  \item The distance has a rich duality, especially for $p=1$;
+  \item Since it's defined with an infimum, it is easy to bound from above;
+  \item Wasserstein distances incorporate information of the ground geometry.
+\end{enumerate}
+
+For applications in Data Science, the equivalence with weak convergence and the
+incorporation of the ground geometry are probably the most attractive characteristics.
+Figure \ref{fig:wl-kl}
+highlights how $W_p$ takes into account the underlying geometry compared
+to the Kullback-Leibler divergence, which does not.
+
+
+\begin{figure}[H]
+  \centering
+  \def\svgscale{0.60}
+  \includesvg[inkscapelatex=false]{Figures/wassersteingeometry.svg}
+	\caption{Comparison between Wasserstein distance and KL Divergence, based on \citet{montavon2016boltzmann}.
+  On the left,
+  there is a large overlap between the two distributions, but a large geometrical distance for a portion. On the right,
+  there is much less overlap, but the whole distribution is geometrically closer. These two
+  cases clearly highlight how $W_p$ incorporates geometrical information while KL does not.}
+	\label{fig:wl-kl}
+\end{figure}

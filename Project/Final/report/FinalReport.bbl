@@ -1,0 +1,50 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Alvarez-Melis and Fusi(2020)]{alvarez2020geometric}
+David Alvarez-Melis and Nicol{\`o} Fusi.
+\newblock Geometric dataset distances via optimal transport.
+\newblock \emph{arXiv preprint arXiv:2002.02923}, 2020.
+
+\bibitem[Courty et~al.(2014)Courty, Flamary, and Tuia]{courty2014domain}
+Nicolas Courty, R{\'e}mi Flamary, and Devis Tuia.
+\newblock Domain adaptation with regularized optimal transport.
+\newblock In \emph{Joint European Conference on Machine Learning and Knowledge
+  Discovery in Databases}, pages 274--289. Springer, 2014.
+
+\bibitem[Damodaran et~al.(2018)Damodaran, Kellenberger, Flamary, Tuia, and
+  Courty]{damodaran2018deepjdot}
+Bharath~Bhushan Damodaran, Benjamin Kellenberger, R{\'e}mi Flamary, Devis Tuia,
+  and Nicolas Courty.
+\newblock Deepjdot: Deep joint distribution optimal transport for unsupervised
+  domain adaptation.
+\newblock In \emph{Proceedings of the European Conference on Computer Vision
+  (ECCV)}, pages 447--463, 2018.
+
+\bibitem[Flamary et~al.(2014)Flamary, Courty, Tuia, and
+  Rakotomamonjy]{flamary2014optimal}
+R{\'e}mi Flamary, Nicolas Courty, Devis Tuia, and Alain Rakotomamonjy.
+\newblock Optimal transport with laplacian regularization: Applications to
+  domain adaptation and shape matching.
+\newblock In \emph{NIPS Workshop on Optimal Transport and Machine Learning
+  OTML}, 2014.
+
+\bibitem[Shen et~al.(2018)Shen, Qu, Zhang, and Yu]{shen2018wasserstein}
+Jian Shen, Yanru Qu, Weinan Zhang, and Yong Yu.
+\newblock Wasserstein distance guided representation learning for domain
+  adaptation.
+\newblock In \emph{Proceedings of the AAAI Conference on Artificial
+  Intelligence}, volume~32, 2018.
+
+\bibitem[Solomon et~al.(2014)Solomon, Rustamov, Guibas, and
+  Butscher]{solomon2014wasserstein}
+Justin Solomon, Raif Rustamov, Leonidas Guibas, and Adrian Butscher.
+\newblock Wasserstein propagation for semi-supervised learning.
+\newblock In \emph{International Conference on Machine Learning}, pages
+  306--314. PMLR, 2014.
+
+\end{thebibliography}

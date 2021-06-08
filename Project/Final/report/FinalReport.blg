@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d (TeX Live 2020/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: FinalReport.aux
+The style file: plainnat.bst
+Database file #1: ref.bib
+Warning--can't use both volume and number fields in shen2018wasserstein
+You've used 6 entries,
+            2773 wiz_defined-function locations,
+            625 strings with 6172 characters,
+and the built_in function-call counts, 3442 in all, are:
+= -- 300
+> -- 216
+< -- 5
++ -- 72
+- -- 66
+* -- 271
+:= -- 503
+add.period$ -- 20
+call.type$ -- 6
+change.case$ -- 40
+chr.to.int$ -- 6
+cite$ -- 13
+duplicate$ -- 166
+empty$ -- 275
+format.name$ -- 74
+if$ -- 745
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 6
+newline$ -- 38
+num.names$ -- 24
+pop$ -- 95
+preamble$ -- 1
+purify$ -- 34
+quote$ -- 0
+skip$ -- 133
+stack$ -- 0
+substring$ -- 108
+swap$ -- 40
+text.length$ -- 4
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 66
+warning$ -- 1
+while$ -- 27
+width$ -- 0
+write$ -- 85
+(There was 1 warning)
