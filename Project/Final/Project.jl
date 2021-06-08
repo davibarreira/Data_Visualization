@@ -152,6 +152,9 @@ md"""
 After pressing the "Final Picks" button, the user choses which images he wants to augument.
 """
 
+# ╔═╡ 7549332e-a5a8-4dfb-b36d-423da82b9d98
+[[MNIST.convert2image(mnist_x[i,:]) for i in 3:5] [MNIST.convert2image(fmnist_x[i,:]) for i in 1:3]]
+
 # ╔═╡ 4adf778c-bf01-4b93-93c6-1c6cd326e184
 md"""
 #### Aplying Augumentation to Final Selection
@@ -233,11 +236,8 @@ begin
 	end
 end
 
-# ╔═╡ 7549332e-a5a8-4dfb-b36d-423da82b9d98
-[mnistsimg]
-
 # ╔═╡ 65e421d2-0508-4623-b62e-43c1dadca714
-[fmnistsimg]
+fmnistsimg
 
 # ╔═╡ 92a8f35c-4b63-4712-bd33-86be8201b22d
 finalselection[1]["dataset"]
@@ -857,7 +857,7 @@ df
 # ╟─07120a08-226b-4907-87c7-f5d63af616a7
 # ╟─f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
 # ╠═7549332e-a5a8-4dfb-b36d-423da82b9d98
-# ╟─65e421d2-0508-4623-b62e-43c1dadca714
+# ╠═65e421d2-0508-4623-b62e-43c1dadca714
 # ╟─e4aa0577-dfc6-4159-a00e-09adbc8c8078
 # ╟─4adf778c-bf01-4b93-93c6-1c6cd326e184
 # ╟─3aed32f1-f15c-4672-8641-e52c9a7c7671

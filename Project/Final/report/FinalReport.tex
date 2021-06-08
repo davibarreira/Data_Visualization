@@ -84,7 +84,8 @@ for example, on a construction?'' (see Figure \ref{fig:mongeproblem}).
   \centering
   \includegraphics[width=8cm]{Figures/mongeproblem.png}
   \caption{Illustration of the original Monge Problem, where all the mass is excavated from location
-  $x$ is transported to a deterministic location $y$. The transport assignment map is represented by the arrow in green.}
+  $x$ is transported to a deterministic location $y$.
+  The transport assignment map is represented by the arrow in green.}
   \label{fig:mongeproblem}
 \end{figure}
 
@@ -123,6 +124,22 @@ to explore the differences between the datasets, and perform data
 augmentations in order to improve the transferability between the datasets, i.e.
 reduce the OTDD distance.
 
+\section{Datasets}
+
+We utilize the MNIST and FashionMNIST (FMNIST) datasets, which are benchmark
+datasets for Machine Learning. The MNIST dataset is composed of handwritten
+digits from zero to nine, each picture is in gray-scale and consists
+in 28 by 28 pixels.
+The FMNIST consists of small photos of clothes divided in 10 categories (e.g. shoes, dress, shirt, etc)
+Each image is also in gray-scale and 28 by 28 pixels.
+Figure \ref{fig:dataset} presents some samples from the datasets.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=4cm]{Figures/datasets.png}
+  \caption{In the left, samples from MNIST. In the right, samples from FMNIST.}
+  \label{fig:dataset}
+\end{figure}
 
 % \nocite{*}
 

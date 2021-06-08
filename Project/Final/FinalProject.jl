@@ -13,34 +13,6 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 8529c382-f72f-44f7-8ccd-ce68ab03776e
-begin
-    import Pkg
-    Pkg.activate(mktempdir())
-    Pkg.add([
-        Pkg.PackageSpec(name="PlutoUI"),
-        Pkg.PackageSpec(name="HypertextLiteral"),
-        Pkg.PackageSpec(name="JSON"),
-		Pkg.PackageSpec(name="MLDatasets"),
-		Pkg.PackageSpec(name="VegaLite"),
-		Pkg.PackageSpec(name="DataFrames"),
-		Pkg.PackageSpec(name="Distances"),
-		Pkg.PackageSpec(name="LinearAlgebra"),
-		Pkg.PackageSpec(name="JSONTables"),
-		Pkg.PackageSpec(name="Images"),
-		Pkg.PackageSpec(name="ImageContrastAdjustment"),
-		Pkg.PackageSpec(name="ImageCore"),	
-		Pkg.PackageSpec(name="ImageTransformations"),
-		Pkg.PackageSpec(name="Rotations"),
-		Pkg.PackageSpec(name="CoordinateTransformations")
-    ])
-	Pkg.add(url="https://github.com/JuliaOptimalTransport/OptimalTransport.jl")
-	Pkg.add(url="https://github.com/davibarreira/LsqFit.jl")
-	Pkg.add(url="https://github.com/davibarreira/UMAP.jl")
-	
-    using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP, ImageContrastAdjustment, ImageCore, ImageTransformations, Rotations
-end
-
 # ╔═╡ 2ffddf10-bd51-11eb-12cb-f1add38b47fb
 md"""
 # Dataset Transferability Analysis
@@ -52,57 +24,15 @@ md"""
 ### Installing and Importing Packages and Data
 """
 
-# ╔═╡ e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
-begin
-	mnist_x = reshape(MNIST.traintensor(Float64),28*28,:);
-	mnist_y = MNIST.trainlabels(1:size(mnist_x, 2));
-	fmnist_x = reshape(FashionMNIST.traintensor(Float64),28*28,:);
-	fmnist_y = FashionMNIST.trainlabels(1:size(fmnist_x, 2));
-
-	N = 100;
-	mnist_x  = mnist_x'[1:N,:];
-	mnist_y  = mnist_y[1:N];
-	fmnist_x = fmnist_x'[1:N,:];
-	fmnist_y = fmnist_y[1:N];
-	img_url = vcat(
-					["http://localhost:5000/mnist_"*string(i)*".png" for i in 1:N],
-					["http://localhost:5000/fmnist_"*string(i)*".png" for i in 1:N]);
-end
-
 # ╔═╡ b3fd7749-18ef-4033-9e2d-431ee284c11b
 md"""
 ### Data Wrangling
 """
 
-# ╔═╡ 068369ca-a6db-4f01-b192-1256332202f0
-res = umap(hcat(mnist_x',fmnist_x'); n_neighbors=10, min_dist=0.001, n_epochs=200)';
-
 # ╔═╡ b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
 md"""
 Generating dataset for plots
 """
-
-# ╔═╡ df0f24fd-f847-40fb-b3dc-12350face55f
-begin
-	df = DataFrame(
-		id    = collect(1:2*N),
-		x     = res[:,1],
-		y     = res[:,2],
-		img = img_url,
-		label  = vcat(mnist_y[1:N],fmnist_y[1:N]),
-		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
-end;
-
-# ╔═╡ f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
-begin
-	source = df[1:N,:];
-	source[!,:fmnist_label] = df[source[!,:final].+N,:label];
-	source[!,:px] = source[:,:label] + rand(N)*0.8
-	source[!,:py] = source[:,:fmnist_label] + rand(N)*0.8;
-end
-
-# ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
-dfjson = arraytable(df)
 
 # ╔═╡ 29ac65a4-a1c1-47a8-a691-be90f988709f
 md"""
@@ -116,16 +46,6 @@ Dataset for heatmap
 
 # ╔═╡ 3770fcc8-a00a-4b9f-9dad-687916e0257a
 @bind markpicker Select(["Images","Circles"])
-
-# ╔═╡ b3e7ad58-ac03-463c-9df9-bdf5872a23ed
-c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
-    "mark"={:rect},
-    "x"={"field"=:label,"type"="ordinal","sort"="ascending",
-		"axis"={"orient"="top","labelAngle"=0}},
-    "y"={"field"=:fmnist_label,"type"="ordinal","sort"="ascending"},
-    "color"={"field"=:label, aggregate="count", "scale"={scheme="lightgreyteal"}},
-    "config"= {"axis"= {"grid"= true, "tickBand"= "extent"}}
-);
 
 # ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
 # begin
@@ -152,13 +72,42 @@ md"""
 After pressing the "Final Picks" button, the user choses which images he wants to augument.
 """
 
+# ╔═╡ 0a074cd7-d98c-4109-abfc-195a1002db2f
+
+
 # ╔═╡ 4adf778c-bf01-4b93-93c6-1c6cd326e184
 md"""
 #### Aplying Augumentation to Final Selection
 """
 
+# ╔═╡ d58935cf-d11a-4262-9389-e2f17b33d800
+md"""
+`Gamma Transform` = $(@bind gamma Slider(0.1:0.1:15, default=1))
+
+`Rotation Angle ` = $(@bind rotation Slider(0:pi/10:2*pi, default=0))
+
+`Mirror Vertical` = $(@bind mirrorv html"<input type=checkbox >") ;
+`Mirror Horizontal` = $(@bind mirrorh html"<input type=checkbox >")
+
+"""
+
+# ╔═╡ 5601474e-ac92-4356-8e63-d91ca3111fa8
+
+
+# ╔═╡ d0267b4a-8e52-42d7-9a36-7ca3259f3f31
+function applyrotate(image, rotation=pi/2)
+    trfm = recenter(RotMatrix(rotation), center(image));
+    mimg = warp(image,trfm)
+    mimg = mimg[1:size(image)[1],1:size(image)[2]]
+    return mimg
+	# return mimg
+end
+
 # ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
 @bind transformations Select(["none","equalization", "gamma"])
+
+# ╔═╡ b082fc96-88a2-4cde-8d2b-fc0550512c0e
+
 
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 GetSelected(text="Select Initial Samples") = @htl("""
@@ -204,49 +153,11 @@ GetFinalSelection(text="Final Picks") = @htl("""
 # ╔═╡ e314152b-9f97-43cd-a164-8833d13c1eb0
 @bind finalselection GetFinalSelection()
 
-# ╔═╡ e4aa0577-dfc6-4159-a00e-09adbc8c8078
-begin
-	mnistid=[]
-	fmnistid=[]
-	mnists=[]
-	mnistsimg=[]
-	fmnists=[]
-	fmnistsimg=[]
-	selectarray =[]
-	selectimg =[]
-	for i in finalselection
-		if length(finalselection) > 0
-			if i["dataset"] == "mnist"
-				push!(mnistid,i["id"])
-				push!(mnists,mnist_x[i["source"],:])
-				push!(mnistsimg,MNIST.convert2image(mnist_x[i["source"],:]))
-				push!(selectarray,mnist_x[i["source"],:])
-				push!(selectimg,MNIST.convert2image(mnist_x[i["source"],:]))
-			else
-				push!(fmnistid,i["id"])
-				push!(fmnists,fmnist_x[i["source"],:])
-				push!(fmnistsimg,MNIST.convert2image(fmnist_x[i["source"],:]))
-				push!(selectarray,fmnist_x[i["source"],:])
-				push!(selectimg,MNIST.convert2image(fmnist_x[i["source"],:]))
-			end
-		end
-	end
-end
-
-# ╔═╡ 7549332e-a5a8-4dfb-b36d-423da82b9d98
-[mnistsimg]
-
-# ╔═╡ 65e421d2-0508-4623-b62e-43c1dadca714
-[fmnistsimg]
-
-# ╔═╡ 92a8f35c-4b63-4712-bd33-86be8201b22d
-finalselection[1]["dataset"]
+# ╔═╡ 302ef592-af13-4033-a03f-ca9325b19db4
+finalselection[1]
 
 # ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
 @bind savetransformation Button("Save Modifications")
-
-# ╔═╡ e13b971a-3575-40b4-90d0-4dbae53e84ef
-fmnistid
 
 # ╔═╡ d468ee56-e522-421b-91b3-66135b0e8683
 begin
@@ -354,16 +265,15 @@ var myimage = svg.selectAll('image')
 	</div>
 """)
 
-# ╔═╡ 86524e6b-c8d4-4e9a-92c3-b761109e0132
-
+# ╔═╡ caa1aad4-7c09-41ce-8b59-2ec257fefc87
+md"""
+## Dataset - Import and Wrangling
+"""
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
 md"""
 ### Auxiliary Functions
 """
-
-# ╔═╡ 70a5b623-418e-4b91-a1b2-dd88a26d5756
-res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
 
 # ╔═╡ e526398c-e77e-43fe-bfb4-638ff2ad579b
 function applyequalization(datasetarray, nbins=256)
@@ -373,107 +283,14 @@ function applyequalization(datasetarray, nbins=256)
 end
 
 
-# ╔═╡ 583923b6-f08a-4074-94ff-2fc480e16277
-function ApplyEqualization(img_ids,dataset)
-    for id in img_ids
-        if dataset == "mnist"
-			mimg = applyequalization(mnist_x[id,:])
-			mnist_x[id,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/mnist_"* string(id)* ".png"
-            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(mimg))
-        else
-			mimg = applyequalization(fmnist_x[id-N,:])
-			fmnist_x[id-N,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/fmnist_"* string(id)* ".png"
-            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applyequalization(mimg)))
-        end
-    end
-end
+# ╔═╡ 2725fb5e-1f71-43be-baf8-dca0ace02a08
+
 
 # ╔═╡ 6c333ac9-22a6-4353-a4f1-67bebdaadc24
 function applygamma(datasetarray, gamma = 2)
     img  = Gray.(datasetarray)
     mimg = adjust_histogram(img, GammaCorrection(gamma = gamma))
     return reshape(convert(Array{Float64}, mimg),28*28)
-end
-
-# ╔═╡ 7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
-begin
-	augimg =[]
-	augarr =[]
-	mnistaug=[]
-	fmnistaug=[]
-	if length(finalselection)>0
-		for i in 1:length(finalselection)
-			if transformations == "none"
-				push!(augarr, selectarray[i])
-				push!(augimg, selectimg[i])
-				if finalselection[i]["dataset"] == "mnist"
-					push!(mnistaug, selecarra[i])
-				else
-					push!(fmnistaug, selecarra[i])
-				end
-			elseif transformations == "equalization"
-				mimg = applyequalization(selectarray[i])
-				push!(augarr, mimg)
-				push!(augimg,MNIST.convert2image(mimg))
-				if finalselection[i]["dataset"] == "mnist"
-					push!(mnistaug, mimg)
-				else
-					push!(fmnistaug, mimg)
-				end
-			elseif transformations == "gamma"
-				mimg = applygamma(selectarray[i])
-				push!(augarr, mimg)
-				push!(augimg,MNIST.convert2image(mimg))
-				if finalselection[i]["dataset"] == "mnist"
-					push!(mnistaug, mimg)
-				else
-					push!(fmnistaug, mimg)
-				end
-			end
-		end
-	end
-end
-
-# ╔═╡ 86522271-f06a-493e-a261-6c1afc6076f4
-augimg
-
-# ╔═╡ 57103a08-fefc-4c8c-85cb-a054de9edc5b
-function ApplyGamma(img_ids,dataset)
-    for id in img_ids
-        if dataset == "mnist"
-			mimg = applygamma(mnist_x[id,:])
-			mnist_x[id,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/mnist_"* string(id)* ".png"
-            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
-        else
-			mimg = applyequalization(fmnist_x[id-N,:])
-			fmnist_x[id-N,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/fmnist_"* string(id)* ".png"
-            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
-        end
-    end
-end
-
-# ╔═╡ 589be23b-fc9b-4c5b-9316-64ce3074a281
-let
-	savetransformation
-	if length(mnistid)>0
-		if transformations == "gamma"
-			ApplyGamma(mnistid, "mnist")
-		elseif transformations == "equalization"
-			ApplyEqualization(mnistid, "mnist")
-		end
-	end
-		
-	if length(fmnistid)>0
-		if transformations == "gamma"
-			ApplyGamma(fmnistid, "fmnist")
-		elseif transformations == "equalization"
-			ApplyEqualization(fmnistid, "fmnist")
-		end
-	end
 end
 
 # ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
@@ -491,45 +308,13 @@ function ingredients(path::String)
 	m
 end
 
-# ╔═╡ 1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
-# include("otdd.jl")
-ot = ingredients("./otdd.jl");
-
-# ╔═╡ 6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
-W = ot.OTDD._getW(mnist_x,mnist_y, fmnist_x, fmnist_y);
-
-# ╔═╡ 9098a67f-de1f-4c06-b8ab-266ff0372231
-C, γ, otdd_initial = ot.OTDD.otdd(mnist_x,mnist_y, fmnist_x, fmnist_y, W=W);
-
-# ╔═╡ dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
-md"""
-## Intial OTDD = $(round(otdd_initial,digits=2))
-Remember, the OTDD measures the distance between datasets, so trying to minimize is a heuristic to improve the process of transfer learning.
-Hence, the goal of this project is to create a visualization tool to help analystis understand their dataset and perform data augumentation, seeking to reduce the OTDD and which (hopefully) can lead to better transfer learning.
-"""
-
-# ╔═╡ 4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+# ╔═╡ 8529c382-f72f-44f7-8ccd-ce68ab03776e
 begin
-	savetransformation 
-	augmnist_x = mnist_x
-	augfmnist_x = fmnist_x
-	if size(hcat(mnistaug...)')[1] > 1
-		
-		augmnist_x[mnistid,:] = hcat(mnistaug...)';
-	end
-	if size(hcat(fmnistaug...)')[1] > 1
-		
-		augfmnist_x[fmnistid,:] = hcat(fmnistaug...)';
-	end
-	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
-end;
-
-# ╔═╡ 7a410198-26f4-4319-9739-851a87359c67
-md"""
-# Did the modifications improve the results?
-
-#### Final OTDD: $(round(otddfinal,digits=2))
-"""
+    import Pkg
+    Pkg.activate(".")
+    using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP, ImageContrastAdjustment, ImageCore, ImageTransformations, Rotations, CoordinateTransformations
+	ot = ingredients("./otdd.jl");
+end
 
 # ╔═╡ f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
 """
@@ -575,46 +360,201 @@ function getlargerew(edges, n=1)
 	end
 end
 
+# ╔═╡ e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
+begin
+	mnist_x = reshape(MNIST.traintensor(Float64),28*28,:);
+	mnist_y = MNIST.trainlabels(1:size(mnist_x, 2));
+	fmnist_x = reshape(FashionMNIST.traintensor(Float64),28*28,:);
+	fmnist_y = FashionMNIST.trainlabels(1:size(fmnist_x, 2));
+
+	N = 200;
+	mnist_x  = mnist_x'[1:N,:];
+	mnist_y  = mnist_y[1:N];
+	fmnist_x = fmnist_x'[1:N,:];
+	fmnist_y = fmnist_y[1:N];
+	img_url = vcat(
+					["http://localhost:5000/mnist_"*string(i)*".png" for i in 1:N],
+					["http://localhost:5000/fmnist_"*string(i)*".png" for i in 1:N]);
+end
+
+# ╔═╡ 6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
+W = ot.OTDD._getW(mnist_x,mnist_y, fmnist_x, fmnist_y);
+
+# ╔═╡ 9098a67f-de1f-4c06-b8ab-266ff0372231
+C, γ, otdd_initial = ot.OTDD.otdd(mnist_x,mnist_y, fmnist_x, fmnist_y, W=W);
+
+# ╔═╡ dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
+md"""
+## Intial OTDD = $(round(otdd_initial,digits=2))
+Remember, the OTDD measures the distance between datasets, so trying to minimize is a heuristic to improve the process of transfer learning.
+Hence, the goal of this project is to create a visualization tool to help analystis understand their dataset and perform data augumentation, seeking to reduce the OTDD and which (hopefully) can lead to better transfer learning.
+"""
+
+# ╔═╡ 068369ca-a6db-4f01-b192-1256332202f0
+res = umap(hcat(mnist_x',fmnist_x'); n_neighbors=10, min_dist=0.001, n_epochs=200)';
+
+# ╔═╡ 7549332e-a5a8-4dfb-b36d-423da82b9d98
+MNIST.convert2image(applygamma(mnist_x[1,:],10))
+
+# ╔═╡ e4aa0577-dfc6-4159-a00e-09adbc8c8078
+begin
+	mnistid=[]
+	fmnistid=[]
+	mnists=[]
+	mnistsimg=[]
+	fmnists=[]
+	fmnistsimg=[]
+	selectarray =[]
+	selectimg =[]
+	for i in finalselection
+		if length(finalselection) > 0
+			if i["dataset"] == "mnist"
+				push!(mnistid,i["id"])
+				push!(mnists,mnist_x[i["source"],:])
+				push!(mnistsimg,MNIST.convert2image(mnist_x[i["source"],:]))
+				push!(selectarray,mnist_x[i["source"],:])
+				push!(selectimg,MNIST.convert2image(mnist_x[i["source"],:]))
+			else
+				push!(fmnistid,i["id"])
+				push!(fmnists,fmnist_x[i["source"],:])
+				push!(fmnistsimg,MNIST.convert2image(fmnist_x[i["source"],:]))
+				push!(selectarray,fmnist_x[i["source"],:])
+				push!(selectimg,MNIST.convert2image(fmnist_x[i["source"],:]))
+			end
+		end
+	end
+end
+
+# ╔═╡ 65e421d2-0508-4623-b62e-43c1dadca714
+[fmnistsimg]
+
+# ╔═╡ 7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
+begin
+	augimg =[]
+	augarr =[]
+	mnistaug=[]
+	fmnistaug=[]
+	if length(finalselection)>0
+		for i in 1:length(finalselection)
+			if transformations == "none"
+				push!(augarr, selectarray[i])
+				push!(augimg, selectimg[i])
+				if finalselection[i]["dataset"] == "mnist"
+					push!(mnistaug, selecarra[i])
+				else
+					push!(fmnistaug, selecarra[i])
+				end
+			elseif transformations == "equalization"
+				mimg = applyequalization(selectarray[i])
+				push!(augarr, mimg)
+				push!(augimg,MNIST.convert2image(mimg))
+				if finalselection[i]["dataset"] == "mnist"
+					push!(mnistaug, mimg)
+				else
+					push!(fmnistaug, mimg)
+				end
+			elseif transformations == "gamma"
+				mimg = applygamma(selectarray[i])
+				push!(augarr, mimg)
+				push!(augimg,MNIST.convert2image(mimg))
+				if finalselection[i]["dataset"] == "mnist"
+					push!(mnistaug, mimg)
+				else
+					push!(fmnistaug, mimg)
+				end
+			end
+		end
+	end
+end
+
+# ╔═╡ 86522271-f06a-493e-a261-6c1afc6076f4
+augimg
+
+# ╔═╡ 13c997a2-3905-4f98-96a0-8dfb3835cebb
+img = MNIST.convert2image(mnist_x[finalselection[2]["id"],:])
+
+# ╔═╡ 4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
+function applygammatransform(image, gamma = 2)
+    mimg = adjust_histogram(img, GammaCorrection(gamma = gamma))
+    return mimg
+end
+
+# ╔═╡ f3c8e3ad-d890-43eb-881e-56f89b8a0f98
+function applytransformations(image, gamma = 0.1, rotation = 0, mirrorv=false, mirrorh=false)
+    mimg = applygammatransform(image,gamma)
+	mimg = applyrotate(mimg,rotation)
+	if mirrorv == true
+		mimg = reverse(mimg,dims=1)
+	end
+	if mirrorh == true
+		mimg = reverse(mimg,dims=2)
+	end
+    return mimg
+end
+
+# ╔═╡ 512923d7-910f-47de-8ecb-7fcc9476166a
+applytransformations(img, gamma, rotation, mirrorv, mirrorh)
+
+# ╔═╡ 4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+begin
+	savetransformation 
+	augmnist_x = mnist_x
+	augfmnist_x = fmnist_x
+	if size(hcat(mnistaug...)')[1] > 1
+		
+		augmnist_x[mnistid,:] = hcat(mnistaug...)';
+	end
+	if size(hcat(fmnistaug...)')[1] > 1
+		
+		augfmnist_x[fmnistid,:] = hcat(fmnistaug...)';
+	end
+	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
+end;
+
+# ╔═╡ 7a410198-26f4-4319-9739-851a87359c67
+md"""
+# Did the modifications improve the results?
+
+#### Final OTDD: $(round(otddfinal,digits=2))
+"""
+
+# ╔═╡ df0f24fd-f847-40fb-b3dc-12350face55f
+begin
+	df = DataFrame(
+		id    = collect(1:2*N),
+		x     = res[:,1],
+		y     = res[:,2],
+		img = img_url,
+		label  = vcat(mnist_y[1:N],fmnist_y[1:N]),
+		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
+end;
+
+# ╔═╡ f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
+begin
+	source = df[1:N,:];
+	source[!,:fmnist_label] = df[source[!,:final].+N,:label];
+	source[!,:px] = source[:,:label] + rand(N)*0.8
+	source[!,:py] = source[:,:fmnist_label] + rand(N)*0.8;
+end
+
+# ╔═╡ b3e7ad58-ac03-463c-9df9-bdf5872a23ed
+c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
+    "mark"={:rect},
+    "x"={"field"=:label,"type"="ordinal","sort"="ascending",
+		"axis"={"orient"="top","labelAngle"=0}},
+    "y"={"field"=:fmnist_label,"type"="ordinal","sort"="ascending"},
+    "color"={"field"=:label, aggregate="count", "scale"={scheme="lightgreyteal"}},
+    "config"= {"axis"= {"grid"= true, "tickBand"= "extent"}}
+);
+
+# ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
+dfjson = arraytable(df)
+
 # ╔═╡ 564c6127-b38b-4773-baa8-75e7a17dd677
 begin
 	d_mnist  = Matrix(df[df[:,:dataset].=="mnist",[:x,:y]])
 	d_fmnist = Matrix(df[df[:,:dataset].=="fmnist",[:x,:y]]);
 	edges = getlargerew(CreateEdges(d_mnist, d_fmnist, γ, ewfilter=0.1),2);
-end;
-
-# ╔═╡ 239deeeb-b34f-4057-9752-4d6f5e0b916d
-begin
-	df[!,:pe] = edges[!,:pe]
-	df[!,:source] = edges[!,:source]
-	df[!,:target] = edges[!,:target]
-	tx = []
-	ty = []
-	tl = []
-	Ndf  = Int(size(df)[1]/2)
-	
-	
-	f(x) = argmax(γ[x,:])
-	g(x) = argmax(γ[:,x])
-	mnistorigin = collect(1:N)
-	fmnistorigin = collect(1:N)
-	mnistfinal = f.(mnistorigin);
-	fmnistfinal = g.(fmnistorigin);
-	df[!,:origin] = vcat(mnistorigin,fmnistorigin)
-	df[!,:final] = vcat(mnistfinal,fmnistfinal);
-	for i in 1:size(df)[1]
-		if df[i,:dataset] == "mnist"
-			push!(tx,df[df[i,:final]+Ndf,:x])
-			push!(ty,df[df[i,:final]+100,:y])
-			push!(tl,df[df[i,:final]+Ndf,:label])
-		else
-			push!(tx,df[df[i,:origin],:x])
-			push!(ty,df[df[i,:origin],:y])
-			push!(tl,df[df[i,:origin],:label])
-		end
-	end
-	df[!,:tx] = tx
-	df[!,:ty] = ty
-	df[!,:tl] = tl
 end;
 
 # ╔═╡ c5f10b93-4e80-49a5-9f95-fbc489449bde
@@ -808,86 +748,162 @@ Scatter = @htl("""
 
 """)
 
-# ╔═╡ 54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
-json(nedges)
+# ╔═╡ 239deeeb-b34f-4057-9752-4d6f5e0b916d
+begin
+	df[!,:pe] = edges[!,:pe]
+	df[!,:source] = edges[!,:source]
+	df[!,:target] = edges[!,:target]
+	tx = []
+	ty = []
+	tl = []
+	Ndf  = Int(size(df)[1]/2)
+	
+	
+	f(x) = argmax(γ[x,:])
+	g(x) = argmax(γ[:,x])
+	mnistorigin = collect(1:N)
+	fmnistorigin = collect(1:N)
+	mnistfinal = f.(mnistorigin);
+	fmnistfinal = g.(fmnistorigin);
+	df[!,:origin] = vcat(mnistorigin,fmnistorigin)
+	df[!,:final] = vcat(mnistfinal,fmnistfinal);
+	for i in 1:size(df)[1]
+		if df[i,:dataset] == "mnist"
+			push!(tx,df[df[i,:final]+Ndf,:x])
+			push!(ty,df[df[i,:final]+100,:y])
+			push!(tl,df[df[i,:final]+Ndf,:label])
+		else
+			push!(tx,df[df[i,:origin],:x])
+			push!(ty,df[df[i,:origin],:y])
+			push!(tl,df[df[i,:origin],:label])
+		end
+	end
+	df[!,:tx] = tx
+	df[!,:ty] = ty
+	df[!,:tl] = tl
+end;
 
-# ╔═╡ 7f1c1a12-94b1-4128-82bf-26e9c0e172c5
-nedges[6]
+# ╔═╡ 70a5b623-418e-4b91-a1b2-dd88a26d5756
+res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
 
-# ╔═╡ 32d943bc-e504-4929-b1d4-ce1882a690f8
+# ╔═╡ 57103a08-fefc-4c8c-85cb-a054de9edc5b
+function ApplyGamma(img_ids,dataset)
+    for id in img_ids
+        if dataset == "mnist"
+			mimg = applygamma(mnist_x[id,:])
+			mnist_x[id,:] = mimg
+			df[id,:img] = "http://localhost:5000/modified/mnist_"* string(id)* ".png"
+            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
+        else
+			mimg = applyequalization(fmnist_x[id-N,:])
+			fmnist_x[id-N,:] = mimg
+			df[id,:img] = "http://localhost:5000/modified/fmnist_"* string(id)* ".png"
+            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
+        end
+    end
+end
+
+# ╔═╡ 583923b6-f08a-4074-94ff-2fc480e16277
+function ApplyEqualization(img_ids,dataset)
+    for id in img_ids
+        if dataset == "mnist"
+			mimg = applyequalization(mnist_x[id,:])
+			mnist_x[id,:] = mimg
+			df[id,:img] = "http://localhost:5000/modified/mnist_"* string(id)* ".png"
+            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(mimg))
+        else
+			mimg = applyequalization(fmnist_x[id-N,:])
+			fmnist_x[id-N,:] = mimg
+			df[id,:img] = "http://localhost:5000/modified/fmnist_"* string(id)* ".png"
+            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applyequalization(mimg)))
+        end
+    end
+end
+
+# ╔═╡ 589be23b-fc9b-4c5b-9316-64ce3074a281
+let
+	savetransformation
+	if length(mnistid)>0
+		if transformations == "gamma"
+			ApplyGamma(mnistid, "mnist")
+		elseif transformations == "equalization"
+			ApplyEqualization(mnistid, "mnist")
+		end
+	end
+		
+	if length(fmnistid)>0
+		if transformations == "gamma"
+			ApplyGamma(fmnistid, "fmnist")
+		elseif transformations == "equalization"
+			ApplyEqualization(fmnistid, "fmnist")
+		end
+	end
+end
+
+# ╔═╡ 2cc0a70d-eb27-42c2-bc70-cce6aa6c6706
 df
-
-# ╔═╡ 9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
-
-
-# ╔═╡ 7b7cd9aa-81a1-4c8a-9f6a-f3627d2071a0
-
-
-# ╔═╡ ab01e788-83a1-40e6-a7fe-887ae9a2ff10
-
-
-# ╔═╡ f755bab0-7288-45fd-a589-6399d374c796
-
 
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
 # ╠═8529c382-f72f-44f7-8ccd-ce68ab03776e
-# ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
-# ╠═1fbf4fa5-3eb5-4866-9b55-4bf9c5967250
+# ╠═6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
 # ╠═9098a67f-de1f-4c06-b8ab-266ff0372231
-# ╟─6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
+# ╠═068369ca-a6db-4f01-b192-1256332202f0
 # ╟─b3fd7749-18ef-4033-9e2d-431ee284c11b
-# ╟─068369ca-a6db-4f01-b192-1256332202f0
 # ╟─b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
-# ╠═df0f24fd-f847-40fb-b3dc-12350face55f
-# ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
-# ╟─f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
-# ╟─c315a543-e9be-4b79-8449-b9175c923bb8
-# ╟─c5f10b93-4e80-49a5-9f95-fbc489449bde
+# ╠═f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
+# ╠═c315a543-e9be-4b79-8449-b9175c923bb8
+# ╠═c5f10b93-4e80-49a5-9f95-fbc489449bde
 # ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
 # ╟─21b3b741-1ea1-49a4-a6ae-b22666f53e19
 # ╟─dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
 # ╟─3770fcc8-a00a-4b9f-9dad-687916e0257a
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
-# ╟─e314152b-9f97-43cd-a164-8833d13c1eb0
-# ╟─95063639-9e69-4bff-85e0-31e642be8a0a
-# ╟─b3e7ad58-ac03-463c-9df9-bdf5872a23ed
-# ╟─07120a08-226b-4907-87c7-f5d63af616a7
+# ╠═e314152b-9f97-43cd-a164-8833d13c1eb0
+# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
+# ╠═b3e7ad58-ac03-463c-9df9-bdf5872a23ed
+# ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╟─f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
 # ╠═7549332e-a5a8-4dfb-b36d-423da82b9d98
-# ╟─65e421d2-0508-4623-b62e-43c1dadca714
-# ╟─e4aa0577-dfc6-4159-a00e-09adbc8c8078
+# ╠═0a074cd7-d98c-4109-abfc-195a1002db2f
+# ╠═65e421d2-0508-4623-b62e-43c1dadca714
+# ╠═302ef592-af13-4033-a03f-ca9325b19db4
+# ╠═e4aa0577-dfc6-4159-a00e-09adbc8c8078
 # ╟─4adf778c-bf01-4b93-93c6-1c6cd326e184
-# ╟─3aed32f1-f15c-4672-8641-e52c9a7c7671
+# ╠═d58935cf-d11a-4262-9389-e2f17b33d800
+# ╠═13c997a2-3905-4f98-96a0-8dfb3835cebb
+# ╠═512923d7-910f-47de-8ecb-7fcc9476166a
+# ╠═5601474e-ac92-4356-8e63-d91ca3111fa8
+# ╠═d0267b4a-8e52-42d7-9a36-7ca3259f3f31
+# ╠═4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
+# ╠═f3c8e3ad-d890-43eb-881e-56f89b8a0f98
+# ╠═3aed32f1-f15c-4672-8641-e52c9a7c7671
 # ╠═86522271-f06a-493e-a261-6c1afc6076f4
+# ╠═b082fc96-88a2-4cde-8d2b-fc0550512c0e
 # ╟─839f0087-5890-462d-8507-70b3c3db797d
 # ╟─a3feade2-822e-43eb-8a02-5b67985af4c0
-# ╟─7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
-# ╟─92a8f35c-4b63-4712-bd33-86be8201b22d
+# ╠═7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
 # ╟─bf62c705-49cc-4545-8bdf-316a61c9a5c0
-# ╟─e13b971a-3575-40b4-90d0-4dbae53e84ef
-# ╟─589be23b-fc9b-4c5b-9316-64ce3074a281
-# ╟─d468ee56-e522-421b-91b3-66135b0e8683
+# ╠═589be23b-fc9b-4c5b-9316-64ce3074a281
+# ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╟─7a410198-26f4-4319-9739-851a87359c67
-# ╟─86524e6b-c8d4-4e9a-92c3-b761109e0132
-# ╟─4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+# ╠═4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+# ╠═caa1aad4-7c09-41ce-8b59-2ec257fefc87
+# ╠═df0f24fd-f847-40fb-b3dc-12350face55f
+# ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
-# ╟─57103a08-fefc-4c8c-85cb-a054de9edc5b
-# ╟─583923b6-f08a-4074-94ff-2fc480e16277
-# ╟─e526398c-e77e-43fe-bfb4-638ff2ad579b
-# ╟─6c333ac9-22a6-4353-a4f1-67bebdaadc24
-# ╟─1b066cf7-bf1b-4445-9e58-275679838973
-# ╟─f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
-# ╟─ad4fe979-f23e-4a68-a69b-b98d3406c90b
-# ╟─564c6127-b38b-4773-baa8-75e7a17dd677
-# ╟─54537efb-a3fb-4d0c-9007-e1ca6d4a07a5
-# ╟─2b880632-e9d0-40f8-8231-315ad2abc6b0
-# ╟─7f1c1a12-94b1-4128-82bf-26e9c0e172c5
-# ╟─32d943bc-e504-4929-b1d4-ce1882a690f8
-# ╠═9b036dd7-ba33-4ce3-b8f2-f4eec13a6f74
-# ╠═7b7cd9aa-81a1-4c8a-9f6a-f3627d2071a0
-# ╠═ab01e788-83a1-40e6-a7fe-887ae9a2ff10
-# ╠═f755bab0-7288-45fd-a589-6399d374c796
+# ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
+# ╠═583923b6-f08a-4074-94ff-2fc480e16277
+# ╠═e526398c-e77e-43fe-bfb4-638ff2ad579b
+# ╠═2725fb5e-1f71-43be-baf8-dca0ace02a08
+# ╠═6c333ac9-22a6-4353-a4f1-67bebdaadc24
+# ╠═1b066cf7-bf1b-4445-9e58-275679838973
+# ╠═f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
+# ╠═ad4fe979-f23e-4a68-a69b-b98d3406c90b
+# ╠═564c6127-b38b-4773-baa8-75e7a17dd677
+# ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
+# ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
+# ╠═2cc0a70d-eb27-42c2-bc70-cce6aa6c6706
