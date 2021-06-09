@@ -47,52 +47,31 @@ Dataset for heatmap
 # ╔═╡ 3770fcc8-a00a-4b9f-9dad-687916e0257a
 @bind markpicker Select(["Images","Circles"])
 
-# ╔═╡ 07120a08-226b-4907-87c7-f5d63af616a7
-# begin
-# 	mnistselection = []
-# 	fmnistselection = []
-# 	mnistselecimg = []
-# 	fmnistselecimg = []
-# 	for i in finalselection
-# 		if length(finalselection) > 0
-# 			if i["dataset"] == "mnist"
-# 				push!(mnistselection,mnist_x[i["id"],:])
-# 				push!(mnistselecimg, MNIST.convert2image(mnist_x[i["id"],:]))
-# 			else
-# 				push!(fmnistselection,fmnist_x[i["id"],:])
-# 				push!(fmnistselecimg, MNIST.convert2image(fmnist_x[i["id"],:]))
-# 			end
-# 		end
-# 	end
-# end
-
 # ╔═╡ f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
 md"""
 #### Finals Picks to be Augumented:
 After pressing the "Final Picks" button, the user choses which images he wants to augument.
 """
 
-# ╔═╡ 0a074cd7-d98c-4109-abfc-195a1002db2f
-
-
 # ╔═╡ 4adf778c-bf01-4b93-93c6-1c6cd326e184
 md"""
 #### Aplying Augumentation to Final Selection
 """
 
+# ╔═╡ ba9df336-c132-4ff0-9f34-6b8b5b0b34a7
+@bind default Button("Default")
+
 # ╔═╡ d58935cf-d11a-4262-9389-e2f17b33d800
 md"""
+Press the buttom above to restore the $(default).
+
 `Gamma Transform` = $(@bind gamma Slider(0.1:0.1:15, default=1))
 
 `Rotation Angle ` = $(@bind rotation Slider(0:pi/10:2*pi, default=0))
 
 `Mirror Vertical` = $(@bind mirrorv html"<input type=checkbox >") ;
 `Mirror Horizontal` = $(@bind mirrorh html"<input type=checkbox >")
-
 """
-
-# ╔═╡ 5601474e-ac92-4356-8e63-d91ca3111fa8
-
 
 # ╔═╡ d0267b4a-8e52-42d7-9a36-7ca3259f3f31
 function applyrotate(image, rotation=pi/2)
@@ -103,11 +82,24 @@ function applyrotate(image, rotation=pi/2)
 	# return mimg
 end
 
-# ╔═╡ 3aed32f1-f15c-4672-8641-e52c9a7c7671
-@bind transformations Select(["none","equalization", "gamma"])
+# ╔═╡ 4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
+function applygammatransform(image, gamma = 2)
+    mimg = adjust_histogram(image, GammaCorrection(gamma = gamma))
+    return mimg
+end
 
-# ╔═╡ b082fc96-88a2-4cde-8d2b-fc0550512c0e
-
+# ╔═╡ f3c8e3ad-d890-43eb-881e-56f89b8a0f98
+function applytransformations(image, gamma = 0.1, rotation = 0, mirrorv=false, mirrorh=false)
+	mimg = applyrotate(image,rotation)
+    mimg = applygammatransform(mimg,gamma)
+	if mirrorv == true
+		mimg = reverse(mimg,dims=1)
+	end
+	if mirrorh == true
+		mimg = reverse(mimg,dims=2)
+	end
+    return mimg
+end
 
 # ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
 GetSelected(text="Select Initial Samples") = @htl("""
@@ -152,9 +144,6 @@ GetFinalSelection(text="Final Picks") = @htl("""
 
 # ╔═╡ e314152b-9f97-43cd-a164-8833d13c1eb0
 @bind finalselection GetFinalSelection()
-
-# ╔═╡ 302ef592-af13-4033-a03f-ca9325b19db4
-finalselection[1]
 
 # ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
 @bind savetransformation Button("Save Modifications")
@@ -283,9 +272,6 @@ function applyequalization(datasetarray, nbins=256)
 end
 
 
-# ╔═╡ 2725fb5e-1f71-43be-baf8-dca0ace02a08
-
-
 # ╔═╡ 6c333ac9-22a6-4353-a4f1-67bebdaadc24
 function applygamma(datasetarray, gamma = 2)
     img  = Gray.(datasetarray)
@@ -393,120 +379,54 @@ Hence, the goal of this project is to create a visualization tool to help analys
 # ╔═╡ 068369ca-a6db-4f01-b192-1256332202f0
 res = umap(hcat(mnist_x',fmnist_x'); n_neighbors=10, min_dist=0.001, n_epochs=200)';
 
-# ╔═╡ 7549332e-a5a8-4dfb-b36d-423da82b9d98
-MNIST.convert2image(applygamma(mnist_x[1,:],10))
-
-# ╔═╡ e4aa0577-dfc6-4159-a00e-09adbc8c8078
+# ╔═╡ 5601474e-ac92-4356-8e63-d91ca3111fa8
 begin
-	mnistid=[]
-	fmnistid=[]
-	mnists=[]
-	mnistsimg=[]
-	fmnists=[]
-	fmnistsimg=[]
-	selectarray =[]
-	selectimg =[]
-	for i in finalselection
-		if length(finalselection) > 0
-			if i["dataset"] == "mnist"
-				push!(mnistid,i["id"])
-				push!(mnists,mnist_x[i["source"],:])
-				push!(mnistsimg,MNIST.convert2image(mnist_x[i["source"],:]))
-				push!(selectarray,mnist_x[i["source"],:])
-				push!(selectimg,MNIST.convert2image(mnist_x[i["source"],:]))
-			else
-				push!(fmnistid,i["id"])
-				push!(fmnists,fmnist_x[i["source"],:])
-				push!(fmnistsimg,MNIST.convert2image(fmnist_x[i["source"],:]))
-				push!(selectarray,fmnist_x[i["source"],:])
-				push!(selectimg,MNIST.convert2image(fmnist_x[i["source"],:]))
-			end
-		end
-	end
-end
-
-# ╔═╡ 65e421d2-0508-4623-b62e-43c1dadca714
-[fmnistsimg]
-
-# ╔═╡ 7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
-begin
-	augimg =[]
-	augarr =[]
-	mnistaug=[]
-	fmnistaug=[]
+	aug_df = Dict(:dataset=>[],:array=>[], :img=>[], :id=>[], :label=>[])
+	datasets_x = Dict("mnist"=> mnist_x, "fmnist"=>fmnist_x)
 	if length(finalselection)>0
 		for i in 1:length(finalselection)
-			if transformations == "none"
-				push!(augarr, selectarray[i])
-				push!(augimg, selectimg[i])
-				if finalselection[i]["dataset"] == "mnist"
-					push!(mnistaug, selecarra[i])
-				else
-					push!(fmnistaug, selecarra[i])
-				end
-			elseif transformations == "equalization"
-				mimg = applyequalization(selectarray[i])
-				push!(augarr, mimg)
-				push!(augimg,MNIST.convert2image(mimg))
-				if finalselection[i]["dataset"] == "mnist"
-					push!(mnistaug, mimg)
-				else
-					push!(fmnistaug, mimg)
-				end
-			elseif transformations == "gamma"
-				mimg = applygamma(selectarray[i])
-				push!(augarr, mimg)
-				push!(augimg,MNIST.convert2image(mimg))
-				if finalselection[i]["dataset"] == "mnist"
-					push!(mnistaug, mimg)
-				else
-					push!(fmnistaug, mimg)
-				end
-			end
+			_dataset = finalselection[i]["dataset"]
+			imgid = finalselection[i]["id"]
+			img = MNIST.convert2image(datasets_x[_dataset][imgid,:])
+			mimg = applytransformations(img, gamma, rotation, mirrorv, mirrorh)
+			aimg = replace!(reshape(convert(Array{Float64}, mimg)',28*28),NaN=>0)
+			push!(aug_df[:dataset],_dataset)
+			push!(aug_df[:array],aimg)
+			push!(aug_df[:img],mimg)
+			push!(aug_df[:id],imgid)
+			push!(aug_df[:label],finalselection[i]["label"])
+		end
+	end
+	aug_df = DataFrame(aug_df)
+end;
+
+# ╔═╡ 82f629f5-204a-433d-860f-4773326de455
+aug_df[:,:img]
+
+# ╔═╡ 5fce3b27-cef6-46e2-8776-9e185902e414
+let
+	savetransformation
+	if size(aug_df)[1] > 0
+		for row in eachrow(aug_df)
+			save("./images/modified/mnist_"*string(row[:id])*".png",
+				row[:img])
 		end
 	end
 end
-
-# ╔═╡ 86522271-f06a-493e-a261-6c1afc6076f4
-augimg
-
-# ╔═╡ 13c997a2-3905-4f98-96a0-8dfb3835cebb
-img = MNIST.convert2image(mnist_x[finalselection[2]["id"],:])
-
-# ╔═╡ 4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
-function applygammatransform(image, gamma = 2)
-    mimg = adjust_histogram(img, GammaCorrection(gamma = gamma))
-    return mimg
-end
-
-# ╔═╡ f3c8e3ad-d890-43eb-881e-56f89b8a0f98
-function applytransformations(image, gamma = 0.1, rotation = 0, mirrorv=false, mirrorh=false)
-    mimg = applygammatransform(image,gamma)
-	mimg = applyrotate(mimg,rotation)
-	if mirrorv == true
-		mimg = reverse(mimg,dims=1)
-	end
-	if mirrorh == true
-		mimg = reverse(mimg,dims=2)
-	end
-    return mimg
-end
-
-# ╔═╡ 512923d7-910f-47de-8ecb-7fcc9476166a
-applytransformations(img, gamma, rotation, mirrorv, mirrorh)
 
 # ╔═╡ 4c11b8f3-e8e6-4932-acb5-b6de350efe8c
 begin
 	savetransformation 
-	augmnist_x = mnist_x
-	augfmnist_x = fmnist_x
-	if size(hcat(mnistaug...)')[1] > 1
-		
-		augmnist_x[mnistid,:] = hcat(mnistaug...)';
+	augmnist_x = copy(mnist_x)
+	augfmnist_x = copy(fmnist_x)
+	_idmnist = aug_df[aug_df[:,:dataset] .== "mnist",:id]
+	_idfmnist = aug_df[aug_df[:,:dataset] .== "fmnist",:id]
+	
+	if length(_idmnist) > 1
+		augmnist_x[_idmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "mnist",:array]...)'
 	end
-	if size(hcat(fmnistaug...)')[1] > 1
-		
-		augfmnist_x[fmnistid,:] = hcat(fmnistaug...)';
+	if length(_idfmnist) > 1
+		augmnist_x[_idfmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "fmnist",:array]...)'
 	end
 	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
 end;
@@ -720,7 +640,7 @@ Scatter = @htl("""
                         .attr("opacity", 0.1)
                         .attr("class", "unselected")
                         .filter(function (d) {
-                            return (x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1) || (x0 <= x(d.tx) && x(d.tx) < x1 && y0 <= y(d.ty) && y(d.ty) < y1);
+                            return x0 <= x(d.x) && x(d.x) < x1 && y0 <= y(d.y) && y(d.y) < y1;
                         })
                         .attr("class", "selected")
                         .attr("opacity", 1.0)
@@ -820,29 +740,6 @@ function ApplyEqualization(img_ids,dataset)
     end
 end
 
-# ╔═╡ 589be23b-fc9b-4c5b-9316-64ce3074a281
-let
-	savetransformation
-	if length(mnistid)>0
-		if transformations == "gamma"
-			ApplyGamma(mnistid, "mnist")
-		elseif transformations == "equalization"
-			ApplyEqualization(mnistid, "mnist")
-		end
-	end
-		
-	if length(fmnistid)>0
-		if transformations == "gamma"
-			ApplyGamma(fmnistid, "fmnist")
-		elseif transformations == "equalization"
-			ApplyEqualization(fmnistid, "fmnist")
-		end
-	end
-end
-
-# ╔═╡ 2cc0a70d-eb27-42c2-bc70-cce6aa6c6706
-df
-
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
@@ -861,36 +758,26 @@ df
 # ╟─3770fcc8-a00a-4b9f-9dad-687916e0257a
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
-# ╠═e314152b-9f97-43cd-a164-8833d13c1eb0
-# ╠═95063639-9e69-4bff-85e0-31e642be8a0a
+# ╟─e314152b-9f97-43cd-a164-8833d13c1eb0
+# ╟─95063639-9e69-4bff-85e0-31e642be8a0a
 # ╠═b3e7ad58-ac03-463c-9df9-bdf5872a23ed
-# ╠═07120a08-226b-4907-87c7-f5d63af616a7
 # ╟─f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
-# ╠═7549332e-a5a8-4dfb-b36d-423da82b9d98
-# ╠═0a074cd7-d98c-4109-abfc-195a1002db2f
-# ╠═65e421d2-0508-4623-b62e-43c1dadca714
-# ╠═302ef592-af13-4033-a03f-ca9325b19db4
-# ╠═e4aa0577-dfc6-4159-a00e-09adbc8c8078
-# ╟─4adf778c-bf01-4b93-93c6-1c6cd326e184
-# ╠═d58935cf-d11a-4262-9389-e2f17b33d800
-# ╠═13c997a2-3905-4f98-96a0-8dfb3835cebb
-# ╠═512923d7-910f-47de-8ecb-7fcc9476166a
+# ╠═4adf778c-bf01-4b93-93c6-1c6cd326e184
+# ╟─ba9df336-c132-4ff0-9f34-6b8b5b0b34a7
+# ╟─d58935cf-d11a-4262-9389-e2f17b33d800
+# ╠═82f629f5-204a-433d-860f-4773326de455
 # ╠═5601474e-ac92-4356-8e63-d91ca3111fa8
 # ╠═d0267b4a-8e52-42d7-9a36-7ca3259f3f31
 # ╠═4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
 # ╠═f3c8e3ad-d890-43eb-881e-56f89b8a0f98
-# ╠═3aed32f1-f15c-4672-8641-e52c9a7c7671
-# ╠═86522271-f06a-493e-a261-6c1afc6076f4
-# ╠═b082fc96-88a2-4cde-8d2b-fc0550512c0e
 # ╟─839f0087-5890-462d-8507-70b3c3db797d
 # ╟─a3feade2-822e-43eb-8a02-5b67985af4c0
-# ╠═7a3aba92-b3ef-4ec5-9004-b5c1afa7428a
 # ╟─bf62c705-49cc-4545-8bdf-316a61c9a5c0
-# ╠═589be23b-fc9b-4c5b-9316-64ce3074a281
+# ╠═5fce3b27-cef6-46e2-8776-9e185902e414
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╟─7a410198-26f4-4319-9739-851a87359c67
 # ╠═4c11b8f3-e8e6-4932-acb5-b6de350efe8c
-# ╠═caa1aad4-7c09-41ce-8b59-2ec257fefc87
+# ╟─caa1aad4-7c09-41ce-8b59-2ec257fefc87
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
 # ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
@@ -898,7 +785,6 @@ df
 # ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
 # ╠═583923b6-f08a-4074-94ff-2fc480e16277
 # ╠═e526398c-e77e-43fe-bfb4-638ff2ad579b
-# ╠═2725fb5e-1f71-43be-baf8-dca0ace02a08
 # ╠═6c333ac9-22a6-4353-a4f1-67bebdaadc24
 # ╠═1b066cf7-bf1b-4445-9e58-275679838973
 # ╠═f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
@@ -906,4 +792,3 @@ df
 # ╠═564c6127-b38b-4773-baa8-75e7a17dd677
 # ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
 # ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
-# ╠═2cc0a70d-eb27-42c2-bc70-cce6aa6c6706
