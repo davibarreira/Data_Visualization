@@ -14,18 +14,19 @@ macro bind(def, element)
 end
 
 # ╔═╡ 2ffddf10-bd51-11eb-12cb-f1add38b47fb
-md"""
-# Dataset Transferability Analysis
-A visual tool for improving transfer learning via data augumentation and Optimal Transport
+html"""
+<h1> Transferability Analysis via Optimal Transport </h1>
+A visual tool for improving transfer learning via data augumentation and Optimal Transport.
 """
 
-# ╔═╡ b3a49e8b-b54c-4247-8370-c2a917e57056
-md"""
-### Installing and Importing Packages and Parsing Data
-"""
+# ╔═╡ e8cbbd48-db4f-4385-b5a7-ead94ac12dad
+@bind start Button("Press to Start Tool")
 
-# ╔═╡ 3770fcc8-a00a-4b9f-9dad-687916e0257a
-@bind markpicker Select(["Images","Circles"])
+# ╔═╡ b9d38f70-7dce-467b-847e-c4b0d3fac50c
+begin
+	start
+	@bind markpicker Select(["Images","Circles"])
+end
 
 # ╔═╡ f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
 md"""
@@ -39,7 +40,10 @@ md"""
 """
 
 # ╔═╡ ba9df336-c132-4ff0-9f34-6b8b5b0b34a7
-@bind default Button("Default")
+begin
+	start
+	@bind default Button("Default")
+end
 
 # ╔═╡ d58935cf-d11a-4262-9389-e2f17b33d800
 md"""
@@ -54,11 +58,29 @@ Press the buttom above to restore the $(default).
 """
 
 # ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
-@bind savetransformation Button("Save Modifications")
+
+begin
+	start
+	@bind savetransformation Button("Save Modifications")
+end
+
+# ╔═╡ c01f8691-605e-49ba-93b1-2f26b393776f
+md"""
+---
+---
+---
+# Code for Visual Tool
+The rest of this notebook is just code for generating the visualization tool above.
+"""
+
+# ╔═╡ b3a49e8b-b54c-4247-8370-c2a917e57056
+md"""
+### Installing and Importing Packages and Parsing Data
+"""
 
 # ╔═╡ caa1aad4-7c09-41ce-8b59-2ec257fefc87
 md"""
-## Dataset - Import and Wrangling
+### Dataset - Import and Wrangling
 """
 
 # ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
@@ -346,7 +368,7 @@ begin
 		augmnist_x[_idmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "mnist",:array]...)'
 	end
 	if length(_idfmnist) > 1
-		augmnist_x[_idfmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "fmnist",:array]...)'
+		augfmnist_x[_idfmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "fmnist",:array]...)'
 	end
 	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
 end;
@@ -512,7 +534,6 @@ Scatter = @htl("""
 </style>
 
 <div id="wrap">
-	<h1> Transferability Analysis via Optimal Transport </h1>
     <div id="left_col">
 	<h5>Optimal Transport between MNIST and FMNIST</h5>
 	<p>
@@ -531,10 +552,7 @@ Scatter = @htl("""
     <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/vega-embed@6.17.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-    <script>
-        let cell = currentScript.closest("pluto-cell");
-        cell.style.width = "1000px";
-    </script>
+
 
         <script id="createplot">
             var div = currentScript.parentElement;
@@ -662,14 +680,23 @@ Scatter = @htl("""
 
 """)
 
+# ╔═╡ 89528c43-0a20-4882-a7dd-522709b1986a
+html"""<style>
+main {
+	max-width: 80%;
+	margin-right: 0;
+}
+"""
+
+# ╔═╡ 8a4004da-e0dc-41bd-9dbe-770d5741ab6d
+md"""
+Chose a marker type
+
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
-# ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
-# ╠═8529c382-f72f-44f7-8ccd-ce68ab03776e
-# ╠═c315a543-e9be-4b79-8449-b9175c923bb8
-# ╠═c5f10b93-4e80-49a5-9f95-fbc489449bde
+# ╟─e8cbbd48-db4f-4385-b5a7-ead94ac12dad
 # ╟─dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
-# ╟─3770fcc8-a00a-4b9f-9dad-687916e0257a
+# ╟─b9d38f70-7dce-467b-847e-c4b0d3fac50c
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╟─e314152b-9f97-43cd-a164-8833d13c1eb0
@@ -683,7 +710,12 @@ Scatter = @htl("""
 # ╟─bf62c705-49cc-4545-8bdf-316a61c9a5c0
 # ╟─7a410198-26f4-4319-9739-851a87359c67
 # ╟─4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+# ╟─c01f8691-605e-49ba-93b1-2f26b393776f
+# ╠═b3a49e8b-b54c-4247-8370-c2a917e57056
+# ╠═8529c382-f72f-44f7-8ccd-ce68ab03776e
 # ╟─caa1aad4-7c09-41ce-8b59-2ec257fefc87
+# ╠═c315a543-e9be-4b79-8449-b9175c923bb8
+# ╟─c5f10b93-4e80-49a5-9f95-fbc489449bde
 # ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
 # ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
@@ -699,3 +731,5 @@ Scatter = @htl("""
 # ╠═ad4fe979-f23e-4a68-a69b-b98d3406c90b
 # ╠═564c6127-b38b-4773-baa8-75e7a17dd677
 # ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
+# ╠═89528c43-0a20-4882-a7dd-522709b1986a
+# ╠═8a4004da-e0dc-41bd-9dbe-770d5741ab6d
