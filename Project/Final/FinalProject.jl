@@ -21,27 +21,7 @@ A visual tool for improving transfer learning via data augumentation and Optimal
 
 # ╔═╡ b3a49e8b-b54c-4247-8370-c2a917e57056
 md"""
-### Installing and Importing Packages and Data
-"""
-
-# ╔═╡ b3fd7749-18ef-4033-9e2d-431ee284c11b
-md"""
-### Data Wrangling
-"""
-
-# ╔═╡ b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
-md"""
-Generating dataset for plots
-"""
-
-# ╔═╡ 29ac65a4-a1c1-47a8-a691-be90f988709f
-md"""
-Dataframe to Json to pass to JavaScript
-"""
-
-# ╔═╡ 21b3b741-1ea1-49a4-a6ae-b22666f53e19
-md"""
-Dataset for heatmap
+### Installing and Importing Packages and Parsing Data
 """
 
 # ╔═╡ 3770fcc8-a00a-4b9f-9dad-687916e0257a
@@ -86,30 +66,76 @@ md"""
 ### Auxiliary Functions
 """
 
-# ╔═╡ a3feade2-822e-43eb-8a02-5b67985af4c0
-GetFinalSelection(text="Final Picks") = @htl("""
-	<div id="ok">
-	<button>$(text)</button>
-	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-    <script id="selection">
-	var div = currentScript.parentElement
-	var button = div.querySelector("button")
-	button.addEventListener("click", (e) => {
-		div.value = d3.select("#sampleview").selectAll("svg").selectAll(".selected").data()
-		div.dispatchEvent(new CustomEvent("input"))
-		e.preventDefault()
-	})
-	const svg = d3.select("#sampleview").selectAll("svg").selectAll(".selected")
-	div.value = svg.data()
-    </script>
-	</div>
-""")
+# ╔═╡ 4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
+function applygammatransform(image, gamma = 2)
+    mimg = adjust_histogram(image, GammaCorrection(gamma = gamma))
+    return mimg
+end
 
-# ╔═╡ e314152b-9f97-43cd-a164-8833d13c1eb0
-@bind finalselection GetFinalSelection()
+# ╔═╡ d0267b4a-8e52-42d7-9a36-7ca3259f3f31
+function applyrotate(image, rotation=pi/2)
+    trfm = recenter(RotMatrix(rotation), center(image));
+    mimg = warp(image,trfm)
+    mimg = mimg[1:size(image)[1],1:size(image)[2]]
+    return mimg
+end
 
-# ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
-GetSelected(text="Select Initial Samples") = @htl("""
+# ╔═╡ f3c8e3ad-d890-43eb-881e-56f89b8a0f98
+function applytransformations(image, gamma = 0.1, rotation = 0, mirrorv=false, mirrorh=false)
+	mimg = applyrotate(image,rotation)
+    mimg = applygammatransform(mimg,gamma)
+	if mirrorv == true
+		mimg = reverse(mimg,dims=1)
+	end
+	if mirrorh == true
+		mimg = reverse(mimg,dims=2)
+	end
+    return mimg
+end
+
+# ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
+function ingredients(path::String)
+	# this is from the Julia source code (evalfile in base/loading.jl)
+	# but with the modification that it returns the module instead of the last object
+	name = Symbol(basename(path))
+	m = Module(name)
+	Core.eval(m,
+        Expr(:toplevel,
+             :(eval(x) = $(Expr(:core, :eval))($name, x)),
+             :(include(x) = $(Expr(:top, :include))($name, x)),
+             :(include(mapexpr::Function, x) = $(Expr(:top, :include))(mapexpr, $name, x)),
+             :(include($path))))
+	m
+end
+
+# ╔═╡ 8529c382-f72f-44f7-8ccd-ce68ab03776e
+begin
+    import Pkg
+    Pkg.activate(".")
+    using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP, ImageContrastAdjustment, ImageCore, ImageTransformations, Rotations, CoordinateTransformations
+	ot = ingredients("./otdd.jl");
+end
+
+# ╔═╡ e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
+begin
+	mnist_x = reshape(MNIST.traintensor(Float64),28*28,:);
+	mnist_y = MNIST.trainlabels(1:size(mnist_x, 2));
+	fmnist_x = reshape(FashionMNIST.traintensor(Float64),28*28,:);
+	fmnist_y = FashionMNIST.trainlabels(1:size(fmnist_x, 2));
+
+	N = 200;
+	mnist_x  = mnist_x'[1:N,:];
+	mnist_y  = mnist_y[1:N];
+	fmnist_x = fmnist_x'[1:N,:];
+	fmnist_y = fmnist_y[1:N];
+	img_url = vcat(
+					["http://localhost:5000/mnist_"*string(i)*".png" for i in 1:N],
+					["http://localhost:5000/fmnist_"*string(i)*".png" for i in 1:N]);
+	W = ot.OTDD._getW(mnist_x,mnist_y, fmnist_x, fmnist_y);
+	C, γ, otdd_initial = ot.OTDD.otdd(mnist_x,mnist_y, fmnist_x, fmnist_y, W=W);
+	res = umap(hcat(mnist_x',fmnist_x'); n_neighbors=10, min_dist=0.001, n_epochs=200)';
+	
+	GetSelected(text="Select Initial Samples") = @htl("""
 	<div id="ok">
 	<button>$(text)</button>
 	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
@@ -126,6 +152,33 @@ GetSelected(text="Select Initial Samples") = @htl("""
     </script>
 	</div>
 """)
+	
+	GetFinalSelection(text="Final Picks") = @htl("""
+	<div id="ok">
+	<button>$(text)</button>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+    <script id="selection">
+	var div = currentScript.parentElement
+	var button = div.querySelector("button")
+	button.addEventListener("click", (e) => {
+		div.value = d3.select("#sampleview").selectAll("svg").selectAll(".selected").data()
+		div.dispatchEvent(new CustomEvent("input"))
+		e.preventDefault()
+	})
+	const svg = d3.select("#sampleview").selectAll("svg").selectAll(".selected")
+	div.value = svg.data()
+    </script>
+	</div>
+""")
+	
+end;
+
+# ╔═╡ dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
+md"""
+## Intial OTDD = $(round(otdd_initial,digits=2))
+Remember, the OTDD measures the distance between datasets, so trying to minimize is a heuristic to improve the process of transfer learning.
+Hence, the goal of this project is to create a visualization tool to help analystis understand their dataset and perform data augumentation, seeking to reduce the OTDD and which (hopefully) can lead to better transfer learning.
+"""
 
 # ╔═╡ a9cb0024-ae23-4fc9-81d8-4ea335884900
 @bind selected GetSelected()
@@ -236,54 +289,85 @@ var myimage = svg.selectAll('image')
 	</div>
 """)
 
-# ╔═╡ 4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
-function applygammatransform(image, gamma = 2)
-    mimg = adjust_histogram(image, GammaCorrection(gamma = gamma))
-    return mimg
-end
+# ╔═╡ e314152b-9f97-43cd-a164-8833d13c1eb0
+@bind finalselection GetFinalSelection()
 
-# ╔═╡ d0267b4a-8e52-42d7-9a36-7ca3259f3f31
-function applyrotate(image, rotation=pi/2)
-    trfm = recenter(RotMatrix(rotation), center(image));
-    mimg = warp(image,trfm)
-    mimg = mimg[1:size(image)[1],1:size(image)[2]]
-    return mimg
-end
-
-# ╔═╡ f3c8e3ad-d890-43eb-881e-56f89b8a0f98
-function applytransformations(image, gamma = 0.1, rotation = 0, mirrorv=false, mirrorh=false)
-	mimg = applyrotate(image,rotation)
-    mimg = applygammatransform(mimg,gamma)
-	if mirrorv == true
-		mimg = reverse(mimg,dims=1)
-	end
-	if mirrorh == true
-		mimg = reverse(mimg,dims=2)
-	end
-    return mimg
-end
-
-# ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
-function ingredients(path::String)
-	# this is from the Julia source code (evalfile in base/loading.jl)
-	# but with the modification that it returns the module instead of the last object
-	name = Symbol(basename(path))
-	m = Module(name)
-	Core.eval(m,
-        Expr(:toplevel,
-             :(eval(x) = $(Expr(:core, :eval))($name, x)),
-             :(include(x) = $(Expr(:top, :include))($name, x)),
-             :(include(mapexpr::Function, x) = $(Expr(:top, :include))(mapexpr, $name, x)),
-             :(include($path))))
-	m
-end
-
-# ╔═╡ 8529c382-f72f-44f7-8ccd-ce68ab03776e
+# ╔═╡ df0f24fd-f847-40fb-b3dc-12350face55f
 begin
-    import Pkg
-    Pkg.activate(".")
-    using MLDatasets, VegaLite, DataFrames, Distances, LinearAlgebra, PlutoUI, HypertextLiteral, JSON, JSONTables, Images, OptimalTransport, UMAP, ImageContrastAdjustment, ImageCore, ImageTransformations, Rotations, CoordinateTransformations
-	ot = ingredients("./otdd.jl");
+	df = DataFrame(
+		id    = collect(1:2*N),
+		x     = res[:,1],
+		y     = res[:,2],
+		img = img_url,
+		label  = vcat(mnist_y[1:N],fmnist_y[1:N]),
+		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
+end;
+
+# ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
+dfjson = arraytable(df)
+
+# ╔═╡ 5601474e-ac92-4356-8e63-d91ca3111fa8
+begin
+	aug_df = Dict(:dataset=>[],:array=>[], :img=>[], :id=>[], :label=>[])
+	datasets_x = Dict("mnist"=> mnist_x, "fmnist"=>fmnist_x)
+	if length(finalselection)>0
+		for i in 1:length(finalselection)
+			_dataset = finalselection[i]["dataset"]
+			imgid = finalselection[i]["id"]
+			if _dataset == "mnist"
+				img = MNIST.convert2image(datasets_x[_dataset][imgid,:])
+			else
+				img = MNIST.convert2image(datasets_x[_dataset][imgid-N,:])
+			end
+			mimg = applytransformations(img, gamma, rotation, mirrorv, mirrorh)
+			aimg = replace!(reshape(convert(Array{Float64}, mimg)',28*28),NaN=>0)
+			push!(aug_df[:dataset],_dataset)
+			push!(aug_df[:array],aimg)
+			push!(aug_df[:img],mimg)
+			push!(aug_df[:id],imgid)
+			push!(aug_df[:label],finalselection[i]["label"])
+		end
+	end
+	aug_df = DataFrame(aug_df)
+end;
+
+# ╔═╡ 82f629f5-204a-433d-860f-4773326de455
+aug_df[:,:img]
+
+# ╔═╡ 4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+begin
+	savetransformation 
+	augmnist_x = copy(mnist_x)
+	augfmnist_x = copy(fmnist_x)
+	_idmnist = aug_df[aug_df[:,:dataset] .== "mnist",:id]
+	_idfmnist = aug_df[aug_df[:,:dataset] .== "fmnist",:id] .- N
+	
+	if length(_idmnist) > 1
+		augmnist_x[_idmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "mnist",:array]...)'
+	end
+	if length(_idfmnist) > 1
+		augmnist_x[_idfmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "fmnist",:array]...)'
+	end
+	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
+end;
+
+# ╔═╡ 7a410198-26f4-4319-9739-851a87359c67
+md"""
+# Did the modifications improve the results?
+
+#### Final OTDD = $(round(otddfinal,digits=2))
+#### Intial OTDD = $(round(otdd_initial,digits=2))
+"""
+
+# ╔═╡ 5fce3b27-cef6-46e2-8776-9e185902e414
+let
+	savetransformation
+	if size(aug_df)[1] > 0
+		for row in eachrow(aug_df)
+			save("./images/modified/mnist_"*string(row[:id])*".png",
+				row[:img])
+		end
+	end
 end
 
 # ╔═╡ f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
@@ -330,60 +414,55 @@ function getlargerew(edges, n=1)
 	end
 end
 
-# ╔═╡ e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
+# ╔═╡ 564c6127-b38b-4773-baa8-75e7a17dd677
 begin
-	mnist_x = reshape(MNIST.traintensor(Float64),28*28,:);
-	mnist_y = MNIST.trainlabels(1:size(mnist_x, 2));
-	fmnist_x = reshape(FashionMNIST.traintensor(Float64),28*28,:);
-	fmnist_y = FashionMNIST.trainlabels(1:size(fmnist_x, 2));
-
-	N = 200;
-	mnist_x  = mnist_x'[1:N,:];
-	mnist_y  = mnist_y[1:N];
-	fmnist_x = fmnist_x'[1:N,:];
-	fmnist_y = fmnist_y[1:N];
-	img_url = vcat(
-					["http://localhost:5000/mnist_"*string(i)*".png" for i in 1:N],
-					["http://localhost:5000/fmnist_"*string(i)*".png" for i in 1:N]);
-end
-
-# ╔═╡ 6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
-W = ot.OTDD._getW(mnist_x,mnist_y, fmnist_x, fmnist_y);
-
-# ╔═╡ 9098a67f-de1f-4c06-b8ab-266ff0372231
-C, γ, otdd_initial = ot.OTDD.otdd(mnist_x,mnist_y, fmnist_x, fmnist_y, W=W);
-
-# ╔═╡ dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
-md"""
-## Intial OTDD = $(round(otdd_initial,digits=2))
-Remember, the OTDD measures the distance between datasets, so trying to minimize is a heuristic to improve the process of transfer learning.
-Hence, the goal of this project is to create a visualization tool to help analystis understand their dataset and perform data augumentation, seeking to reduce the OTDD and which (hopefully) can lead to better transfer learning.
-"""
-
-# ╔═╡ 068369ca-a6db-4f01-b192-1256332202f0
-res = umap(hcat(mnist_x',fmnist_x'); n_neighbors=10, min_dist=0.001, n_epochs=200)';
-
-# ╔═╡ 70a5b623-418e-4b91-a1b2-dd88a26d5756
-res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
-
-# ╔═╡ df0f24fd-f847-40fb-b3dc-12350face55f
-begin
-	df = DataFrame(
-		id    = collect(1:2*N),
-		x     = res[:,1],
-		y     = res[:,2],
-		img = img_url,
-		label  = vcat(mnist_y[1:N],fmnist_y[1:N]),
-		dataset= vcat(["mnist" for i in 1:N],["fmnist" for i in 1:N]));
+	d_mnist  = Matrix(df[df[:,:dataset].=="mnist",[:x,:y]])
+	d_fmnist = Matrix(df[df[:,:dataset].=="fmnist",[:x,:y]]);
+	edges = getlargerew(CreateEdges(d_mnist, d_fmnist, γ, ewfilter=0.1),2);
 end;
 
-# ╔═╡ f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
+# ╔═╡ c5f10b93-4e80-49a5-9f95-fbc489449bde
+edjson = arraytable(edges)
+
+# ╔═╡ 239deeeb-b34f-4057-9752-4d6f5e0b916d
 begin
+	df[!,:pe] = edges[!,:pe]
+	df[!,:source] = edges[!,:source]
+	df[!,:target] = edges[!,:target]
+	tx = []
+	ty = []
+	tl = []
+	Ndf  = Int(size(df)[1]/2)
+	
+	
+	f(x) = argmax(γ[x,:])
+	g(x) = argmax(γ[:,x])
+	mnistorigin = collect(1:N)
+	fmnistorigin = collect(1:N)
+	mnistfinal = f.(mnistorigin);
+	fmnistfinal = g.(fmnistorigin);
+	df[!,:origin] = vcat(mnistorigin,fmnistorigin)
+	df[!,:final] = vcat(mnistfinal,fmnistfinal);
+	for i in 1:size(df)[1]
+		if df[i,:dataset] == "mnist"
+			push!(tx,df[df[i,:final]+Ndf,:x])
+			push!(ty,df[df[i,:final]+100,:y])
+			push!(tl,df[df[i,:final]+Ndf,:label])
+		else
+			push!(tx,df[df[i,:origin],:x])
+			push!(ty,df[df[i,:origin],:y])
+			push!(tl,df[df[i,:origin],:label])
+		end
+	end
+	df[!,:tx] = tx
+	df[!,:ty] = ty
+	df[!,:tl] = tl
+	
 	source = df[1:N,:];
 	source[!,:fmnist_label] = df[source[!,:final].+N,:label];
 	source[!,:px] = source[:,:label] + rand(N)*0.8
 	source[!,:py] = source[:,:fmnist_label] + rand(N)*0.8;
-end
+end;
 
 # ╔═╡ b3e7ad58-ac03-463c-9df9-bdf5872a23ed
 c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
@@ -394,19 +473,6 @@ c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
     "color"={"field"=:label, aggregate="count", "scale"={scheme="lightgreyteal"}},
     "config"= {"axis"= {"grid"= true, "tickBand"= "extent"}}
 );
-
-# ╔═╡ c315a543-e9be-4b79-8449-b9175c923bb8
-dfjson = arraytable(df)
-
-# ╔═╡ 564c6127-b38b-4773-baa8-75e7a17dd677
-begin
-	d_mnist  = Matrix(df[df[:,:dataset].=="mnist",[:x,:y]])
-	d_fmnist = Matrix(df[df[:,:dataset].=="fmnist",[:x,:y]]);
-	edges = getlargerew(CreateEdges(d_mnist, d_fmnist, γ, ewfilter=0.1),2);
-end;
-
-# ╔═╡ c5f10b93-4e80-49a5-9f95-fbc489449bde
-edjson = arraytable(edges)
 
 # ╔═╡ 2b880632-e9d0-40f8-8231-315ad2abc6b0
 nedges =[Dict("values"=> [Dict("ex"=>edges[i,:edges_x],"ey"=>edges[i,:edges_y]),
@@ -596,119 +662,12 @@ Scatter = @htl("""
 
 """)
 
-# ╔═╡ 239deeeb-b34f-4057-9752-4d6f5e0b916d
-begin
-	df[!,:pe] = edges[!,:pe]
-	df[!,:source] = edges[!,:source]
-	df[!,:target] = edges[!,:target]
-	tx = []
-	ty = []
-	tl = []
-	Ndf  = Int(size(df)[1]/2)
-	
-	
-	f(x) = argmax(γ[x,:])
-	g(x) = argmax(γ[:,x])
-	mnistorigin = collect(1:N)
-	fmnistorigin = collect(1:N)
-	mnistfinal = f.(mnistorigin);
-	fmnistfinal = g.(fmnistorigin);
-	df[!,:origin] = vcat(mnistorigin,fmnistorigin)
-	df[!,:final] = vcat(mnistfinal,fmnistfinal);
-	for i in 1:size(df)[1]
-		if df[i,:dataset] == "mnist"
-			push!(tx,df[df[i,:final]+Ndf,:x])
-			push!(ty,df[df[i,:final]+100,:y])
-			push!(tl,df[df[i,:final]+Ndf,:label])
-		else
-			push!(tx,df[df[i,:origin],:x])
-			push!(ty,df[df[i,:origin],:y])
-			push!(tl,df[df[i,:origin],:label])
-		end
-	end
-	df[!,:tx] = tx
-	df[!,:ty] = ty
-	df[!,:tl] = tl
-end;
-
-# ╔═╡ 5601474e-ac92-4356-8e63-d91ca3111fa8
-begin
-	aug_df = Dict(:dataset=>[],:array=>[], :img=>[], :id=>[], :label=>[])
-	datasets_x = Dict("mnist"=> mnist_x, "fmnist"=>fmnist_x)
-	if length(finalselection)>0
-		for i in 1:length(finalselection)
-			_dataset = finalselection[i]["dataset"]
-			imgid = finalselection[i]["id"]
-			if _dataset == "mnist"
-				img = MNIST.convert2image(datasets_x[_dataset][imgid,:])
-			else
-				img = MNIST.convert2image(datasets_x[_dataset][imgid-N,:])
-			end
-			mimg = applytransformations(img, gamma, rotation, mirrorv, mirrorh)
-			aimg = replace!(reshape(convert(Array{Float64}, mimg)',28*28),NaN=>0)
-			push!(aug_df[:dataset],_dataset)
-			push!(aug_df[:array],aimg)
-			push!(aug_df[:img],mimg)
-			push!(aug_df[:id],imgid)
-			push!(aug_df[:label],finalselection[i]["label"])
-		end
-	end
-	aug_df = DataFrame(aug_df)
-end;
-
-# ╔═╡ 82f629f5-204a-433d-860f-4773326de455
-aug_df[:,:img]
-
-# ╔═╡ 4c11b8f3-e8e6-4932-acb5-b6de350efe8c
-begin
-	savetransformation 
-	augmnist_x = copy(mnist_x)
-	augfmnist_x = copy(fmnist_x)
-	_idmnist = aug_df[aug_df[:,:dataset] .== "mnist",:id]
-	_idfmnist = aug_df[aug_df[:,:dataset] .== "fmnist",:id] .- N
-	
-	if length(_idmnist) > 1
-		augmnist_x[_idmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "mnist",:array]...)'
-	end
-	if length(_idfmnist) > 1
-		augmnist_x[_idfmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "fmnist",:array]...)'
-	end
-	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
-end;
-
-# ╔═╡ 7a410198-26f4-4319-9739-851a87359c67
-md"""
-# Did the modifications improve the results?
-
-#### Final OTDD = $(round(otddfinal,digits=2))
-#### Intial OTDD = $(round(otdd_initial,digits=2))
-"""
-
-# ╔═╡ 5fce3b27-cef6-46e2-8776-9e185902e414
-let
-	savetransformation
-	if size(aug_df)[1] > 0
-		for row in eachrow(aug_df)
-			save("./images/modified/mnist_"*string(row[:id])*".png",
-				row[:img])
-		end
-	end
-end
-
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─b3a49e8b-b54c-4247-8370-c2a917e57056
 # ╠═8529c382-f72f-44f7-8ccd-ce68ab03776e
-# ╠═6aa5441c-613e-4a1f-9d94-5d04d5a8cc3a
-# ╠═9098a67f-de1f-4c06-b8ab-266ff0372231
-# ╠═068369ca-a6db-4f01-b192-1256332202f0
-# ╟─b3fd7749-18ef-4033-9e2d-431ee284c11b
-# ╟─b89edb81-2e62-4b2a-8ce3-3e4c25a31b55
-# ╠═f39a0b20-eb8e-4d3e-a4cb-bd4328b6cd06
 # ╠═c315a543-e9be-4b79-8449-b9175c923bb8
 # ╠═c5f10b93-4e80-49a5-9f95-fbc489449bde
-# ╟─29ac65a4-a1c1-47a8-a691-be90f988709f
-# ╟─21b3b741-1ea1-49a4-a6ae-b22666f53e19
 # ╟─dd32009d-8f8e-4745-bc8d-3bfa1ce82ee1
 # ╟─3770fcc8-a00a-4b9f-9dad-687916e0257a
 # ╟─7a1129a6-e48a-4d1c-8d8e-d9c656a47dee
@@ -725,13 +684,11 @@ end
 # ╟─7a410198-26f4-4319-9739-851a87359c67
 # ╟─4c11b8f3-e8e6-4932-acb5-b6de350efe8c
 # ╟─caa1aad4-7c09-41ce-8b59-2ec257fefc87
-# ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
+# ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
 # ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
-# ╠═a3feade2-822e-43eb-8a02-5b67985af4c0
-# ╠═839f0087-5890-462d-8507-70b3c3db797d
 # ╠═4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
 # ╠═f3c8e3ad-d890-43eb-881e-56f89b8a0f98
 # ╠═d0267b4a-8e52-42d7-9a36-7ca3259f3f31
@@ -742,4 +699,3 @@ end
 # ╠═ad4fe979-f23e-4a68-a69b-b98d3406c90b
 # ╠═564c6127-b38b-4773-baa8-75e7a17dd677
 # ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
-# ╠═e5494bbe-ce7d-4a63-8b9f-c0989b3acffb
