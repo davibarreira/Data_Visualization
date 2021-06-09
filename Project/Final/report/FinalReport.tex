@@ -141,6 +141,99 @@ Figure \ref{fig:dataset} presents some samples from the datasets.
   \label{fig:dataset}
 \end{figure}
 
+\section{Technology Used}
+
+This project used the Julia programming language to perform the Optimal Transport
+calculations and all the datasets transformations. Also, instead of Observable,
+we've utilized a tool called ``Pluto'', which is a notebook in Julia very
+similar to Observable. The visualization tool was built inside the Pluto notebook 
+which enabled the creations of buttons and interactive calculations.
+Similar to Observable, the Pluto notebook does not access directly the data
+in the computer, so in order to plot the images from the datasets,
+we also shipped a small code in Julia to create a server to serve the data.
+
+Inside Pluto notebook, we wrote javascript code with instruction to create
+the visualization graphs with D3 and VegaLite.
+
+\section{Visualization Tool}
+
+The visualization tool developed in this project has three main components.
+The first one, shown in Figure \ref{fig:mainscreen}, is composed of two views.
+In the view in the left, we use the UMAP dimensionality reduction in order to visualize
+the datasets in two dimensions.The edges in blue represent the optimal map
+for transporting the empirical distribution of one dataset into another.
+Note that the OTDD is related to such edges, since it measures the Optimal Transport
+distance between the datasets. In this view, the user can use a brush to do a first
+selection of the datasets which he wants to perform the data augmentation by pressing
+the ``Select Initial Samples'' button.
+Also, note that there is a small selector in the top left, where
+the user may change the marker type from ``Image'' to ``Circle'', which
+will more clearly show which sample belongs to which dataset.
+
+The view on the right contains a heatmap with the dataset labels in each axis.
+This heatmap contains the number of samples that are transported in terms
+of their labels. Qualitatively, when two datasets have good transferability,
+it is expected that such heatmap matrix will be sparse. The reason for this is that
+, in the ideal scenario for transfer learning, all samples with the same label
+would all be ``transported'' to samples in the second dataset also all with the same
+label (e.g. all 1's in MNIST go to ``dresses'' in the FMNIST).
+Therefore, the main reason for this view on the right is to help the user
+understand which labels have more space for improvement.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=16cm]{Figures/mainscreen.png}
+  \caption{In the left, samples from MNIST. In the right, samples from FMNIST.}
+  \label{fig:mainscreen}
+\end{figure}
+
+The second component is a rescaled view of the data samples selected in the first
+component. These samples appear as soon as the user presses the ``Select Initial Sample''
+button. In here, the user can do a more thorough visual inspection of the samples.
+Here there is also a brush for the user to perform another selection.
+Then, by pressing the ``Final Picks'' button, the visual tool selects the samples
+inside the brush and sends them to the third component.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=14cm]{Figures/secondscreen.png}
+  \caption{Example of user selecting some samples in the first view, and visualizing them
+  after pressing the ``Sample Initial Samples'' buttons.}
+  \label{fig:secondscreen}
+\end{figure}
+
+The third component is where the user will apply the modifications to the samples,
+trying to reduce the OTDD and thus, improving the transferability between the datasets.
+This component has a ``Default'' button, two sliders and two checkboxes. The first slider performs
+an equalization of the data (i.e. it makes images thinner or thicker depending on
+the value of gamma applied). The second slider performs rotations.
+The checkers perform either vertical or horizontal mirroring. Finally, the ``Default''
+button restores the original images.
+
+As the user applies this transformations to the data, there is a view
+in the bottom showing how the final samples will look. The OTDD recalculated
+as the values in the handles are modified, so the user can visualize in real
+time how the modifications are affecting the transferability.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=14cm]{Figures/thirdscreen.png}
+  \caption{Third component of the visualization tool.}
+  \label{fig:thirdscreen}
+\end{figure}
+
+\section{Installation and Troubleshooting}
+
+In this section, we give the instructions on how to run the visualization tool
+developed in this project, and how to solve possible issues when trying to
+run it for the first time.
+
+As we've stated, this project was developed in the Julia programming language,
+hence, the user must have Julia installed.
+
+The visualizations use a ``cdn'' to import the javascript packages (i.e. d3 and VegaLite),
+therefore, it requires internet access to properly work.
+
 % \nocite{*}
 
   \bibliography{ref}

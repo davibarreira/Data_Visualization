@@ -490,8 +490,8 @@ end;
 c1 = @vlplot("data"=source,"height"=350,"width"=350,"background"="white",
     "mark"={:rect},
     "x"={"field"=:label,"type"="ordinal","sort"="ascending",
-		"axis"={"orient"="top","labelAngle"=0}},
-    "y"={"field"=:fmnist_label,"type"="ordinal","sort"="ascending"},
+		"axis"={"orient"="top","labelAngle"=0, title="mnist label"}},
+    "y"={"field"=:fmnist_label,"type"="ordinal","sort"="ascending","axis"={title="fmnist label"}},
     "color"={"field"=:label, aggregate="count", "scale"={scheme="lightgreyteal"}},
     "config"= {"axis"= {"grid"= true, "tickBand"= "extent"}}
 );
@@ -688,10 +688,6 @@ main {
 }
 """
 
-# ╔═╡ 8a4004da-e0dc-41bd-9dbe-770d5741ab6d
-md"""
-Chose a marker type
-
 # ╔═╡ Cell order:
 # ╟─2ffddf10-bd51-11eb-12cb-f1add38b47fb
 # ╟─e8cbbd48-db4f-4385-b5a7-ead94ac12dad
@@ -701,7 +697,6 @@ Chose a marker type
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╟─e314152b-9f97-43cd-a164-8833d13c1eb0
 # ╟─95063639-9e69-4bff-85e0-31e642be8a0a
-# ╟─b3e7ad58-ac03-463c-9df9-bdf5872a23ed
 # ╟─f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
 # ╟─4adf778c-bf01-4b93-93c6-1c6cd326e184
 # ╟─ba9df336-c132-4ff0-9f34-6b8b5b0b34a7
@@ -720,6 +715,7 @@ Chose a marker type
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
 # ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
+# ╠═b3e7ad58-ac03-463c-9df9-bdf5872a23ed
 # ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╠═4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
 # ╠═f3c8e3ad-d890-43eb-881e-56f89b8a0f98
@@ -732,4 +728,3 @@ Chose a marker type
 # ╠═564c6127-b38b-4773-baa8-75e7a17dd677
 # ╠═2b880632-e9d0-40f8-8231-315ad2abc6b0
 # ╠═89528c43-0a20-4882-a7dd-522709b1986a
-# ╠═8a4004da-e0dc-41bd-9dbe-770d5741ab6d
