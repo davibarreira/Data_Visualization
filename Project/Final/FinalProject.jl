@@ -73,55 +73,18 @@ Press the buttom above to restore the $(default).
 `Mirror Horizontal` = $(@bind mirrorh html"<input type=checkbox >")
 """
 
-# ╔═╡ d0267b4a-8e52-42d7-9a36-7ca3259f3f31
-function applyrotate(image, rotation=pi/2)
-    trfm = recenter(RotMatrix(rotation), center(image));
-    mimg = warp(image,trfm)
-    mimg = mimg[1:size(image)[1],1:size(image)[2]]
-    return mimg
-	# return mimg
-end
+# ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
+@bind savetransformation Button("Save Modifications")
 
-# ╔═╡ 4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
-function applygammatransform(image, gamma = 2)
-    mimg = adjust_histogram(image, GammaCorrection(gamma = gamma))
-    return mimg
-end
+# ╔═╡ caa1aad4-7c09-41ce-8b59-2ec257fefc87
+md"""
+## Dataset - Import and Wrangling
+"""
 
-# ╔═╡ f3c8e3ad-d890-43eb-881e-56f89b8a0f98
-function applytransformations(image, gamma = 0.1, rotation = 0, mirrorv=false, mirrorh=false)
-	mimg = applyrotate(image,rotation)
-    mimg = applygammatransform(mimg,gamma)
-	if mirrorv == true
-		mimg = reverse(mimg,dims=1)
-	end
-	if mirrorh == true
-		mimg = reverse(mimg,dims=2)
-	end
-    return mimg
-end
-
-# ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
-GetSelected(text="Select Initial Samples") = @htl("""
-	<div id="ok">
-	<button>$(text)</button>
-	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
-    <script id="selection">
-	var div = currentScript.parentElement
-	var button = div.querySelector("button")
-	button.addEventListener("click", (e) => {
-		div.value = d3.select("#myvis").selectAll("svg").selectAll(".selected").data()
-		div.dispatchEvent(new CustomEvent("input"))
-		e.preventDefault()
-	})
-	const svg = d3.select("#myvis").selectAll("svg").selectAll(".selected")
-	div.value = svg.data()
-    </script>
-	</div>
-""")
-
-# ╔═╡ a9cb0024-ae23-4fc9-81d8-4ea335884900
-@bind selected GetSelected()
+# ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
+md"""
+### Auxiliary Functions
+"""
 
 # ╔═╡ a3feade2-822e-43eb-8a02-5b67985af4c0
 GetFinalSelection(text="Final Picks") = @htl("""
@@ -145,8 +108,27 @@ GetFinalSelection(text="Final Picks") = @htl("""
 # ╔═╡ e314152b-9f97-43cd-a164-8833d13c1eb0
 @bind finalselection GetFinalSelection()
 
-# ╔═╡ bf62c705-49cc-4545-8bdf-316a61c9a5c0
-@bind savetransformation Button("Save Modifications")
+# ╔═╡ 839f0087-5890-462d-8507-70b3c3db797d
+GetSelected(text="Select Initial Samples") = @htl("""
+	<div id="ok">
+	<button>$(text)</button>
+	<script src="https://cdn.jsdelivr.net/npm/d3@6.2.0/dist/d3.min.js"></script>
+    <script id="selection">
+	var div = currentScript.parentElement
+	var button = div.querySelector("button")
+	button.addEventListener("click", (e) => {
+		div.value = d3.select("#myvis").selectAll("svg").selectAll(".selected").data()
+		div.dispatchEvent(new CustomEvent("input"))
+		e.preventDefault()
+	})
+	const svg = d3.select("#myvis").selectAll("svg").selectAll(".selected")
+	div.value = svg.data()
+    </script>
+	</div>
+""")
+
+# ╔═╡ a9cb0024-ae23-4fc9-81d8-4ea335884900
+@bind selected GetSelected()
 
 # ╔═╡ d468ee56-e522-421b-91b3-66135b0e8683
 begin
@@ -254,29 +236,31 @@ var myimage = svg.selectAll('image')
 	</div>
 """)
 
-# ╔═╡ caa1aad4-7c09-41ce-8b59-2ec257fefc87
-md"""
-## Dataset - Import and Wrangling
-"""
-
-# ╔═╡ 835d761d-bfe5-45f6-919d-d0c03711a5c8
-md"""
-### Auxiliary Functions
-"""
-
-# ╔═╡ e526398c-e77e-43fe-bfb4-638ff2ad579b
-function applyequalization(datasetarray, nbins=256)
-    img  = Gray.(datasetarray)
-    mimg = adjust_histogram(img, Equalization(nbins = nbins))
-    return reshape(convert(Array{Float64}, mimg),28*28)
+# ╔═╡ 4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
+function applygammatransform(image, gamma = 2)
+    mimg = adjust_histogram(image, GammaCorrection(gamma = gamma))
+    return mimg
 end
 
+# ╔═╡ d0267b4a-8e52-42d7-9a36-7ca3259f3f31
+function applyrotate(image, rotation=pi/2)
+    trfm = recenter(RotMatrix(rotation), center(image));
+    mimg = warp(image,trfm)
+    mimg = mimg[1:size(image)[1],1:size(image)[2]]
+    return mimg
+end
 
-# ╔═╡ 6c333ac9-22a6-4353-a4f1-67bebdaadc24
-function applygamma(datasetarray, gamma = 2)
-    img  = Gray.(datasetarray)
-    mimg = adjust_histogram(img, GammaCorrection(gamma = gamma))
-    return reshape(convert(Array{Float64}, mimg),28*28)
+# ╔═╡ f3c8e3ad-d890-43eb-881e-56f89b8a0f98
+function applytransformations(image, gamma = 0.1, rotation = 0, mirrorv=false, mirrorh=false)
+	mimg = applyrotate(image,rotation)
+    mimg = applygammatransform(mimg,gamma)
+	if mirrorv == true
+		mimg = reverse(mimg,dims=1)
+	end
+	if mirrorh == true
+		mimg = reverse(mimg,dims=2)
+	end
+    return mimg
 end
 
 # ╔═╡ 1b066cf7-bf1b-4445-9e58-275679838973
@@ -379,64 +363,8 @@ Hence, the goal of this project is to create a visualization tool to help analys
 # ╔═╡ 068369ca-a6db-4f01-b192-1256332202f0
 res = umap(hcat(mnist_x',fmnist_x'); n_neighbors=10, min_dist=0.001, n_epochs=200)';
 
-# ╔═╡ 5601474e-ac92-4356-8e63-d91ca3111fa8
-begin
-	aug_df = Dict(:dataset=>[],:array=>[], :img=>[], :id=>[], :label=>[])
-	datasets_x = Dict("mnist"=> mnist_x, "fmnist"=>fmnist_x)
-	if length(finalselection)>0
-		for i in 1:length(finalselection)
-			_dataset = finalselection[i]["dataset"]
-			imgid = finalselection[i]["id"]
-			img = MNIST.convert2image(datasets_x[_dataset][imgid,:])
-			mimg = applytransformations(img, gamma, rotation, mirrorv, mirrorh)
-			aimg = replace!(reshape(convert(Array{Float64}, mimg)',28*28),NaN=>0)
-			push!(aug_df[:dataset],_dataset)
-			push!(aug_df[:array],aimg)
-			push!(aug_df[:img],mimg)
-			push!(aug_df[:id],imgid)
-			push!(aug_df[:label],finalselection[i]["label"])
-		end
-	end
-	aug_df = DataFrame(aug_df)
-end;
-
-# ╔═╡ 82f629f5-204a-433d-860f-4773326de455
-aug_df[:,:img]
-
-# ╔═╡ 5fce3b27-cef6-46e2-8776-9e185902e414
-let
-	savetransformation
-	if size(aug_df)[1] > 0
-		for row in eachrow(aug_df)
-			save("./images/modified/mnist_"*string(row[:id])*".png",
-				row[:img])
-		end
-	end
-end
-
-# ╔═╡ 4c11b8f3-e8e6-4932-acb5-b6de350efe8c
-begin
-	savetransformation 
-	augmnist_x = copy(mnist_x)
-	augfmnist_x = copy(fmnist_x)
-	_idmnist = aug_df[aug_df[:,:dataset] .== "mnist",:id]
-	_idfmnist = aug_df[aug_df[:,:dataset] .== "fmnist",:id]
-	
-	if length(_idmnist) > 1
-		augmnist_x[_idmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "mnist",:array]...)'
-	end
-	if length(_idfmnist) > 1
-		augmnist_x[_idfmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "fmnist",:array]...)'
-	end
-	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
-end;
-
-# ╔═╡ 7a410198-26f4-4319-9739-851a87359c67
-md"""
-# Did the modifications improve the results?
-
-#### Final OTDD: $(round(otddfinal,digits=2))
-"""
+# ╔═╡ 70a5b623-418e-4b91-a1b2-dd88a26d5756
+res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
 
 # ╔═╡ df0f24fd-f847-40fb-b3dc-12350face55f
 begin
@@ -703,41 +631,68 @@ begin
 	df[!,:tl] = tl
 end;
 
-# ╔═╡ 70a5b623-418e-4b91-a1b2-dd88a26d5756
-res_jl = umap(hcat(mnist_x[:,1:N],fmnist_x[:,1:N]); n_neighbors=10, min_dist=0.001, n_epochs=200);
+# ╔═╡ 5601474e-ac92-4356-8e63-d91ca3111fa8
+begin
+	aug_df = Dict(:dataset=>[],:array=>[], :img=>[], :id=>[], :label=>[])
+	datasets_x = Dict("mnist"=> mnist_x, "fmnist"=>fmnist_x)
+	if length(finalselection)>0
+		for i in 1:length(finalselection)
+			_dataset = finalselection[i]["dataset"]
+			imgid = finalselection[i]["id"]
+			if _dataset == "mnist"
+				img = MNIST.convert2image(datasets_x[_dataset][imgid,:])
+			else
+				img = MNIST.convert2image(datasets_x[_dataset][imgid-N,:])
+			end
+			mimg = applytransformations(img, gamma, rotation, mirrorv, mirrorh)
+			aimg = replace!(reshape(convert(Array{Float64}, mimg)',28*28),NaN=>0)
+			push!(aug_df[:dataset],_dataset)
+			push!(aug_df[:array],aimg)
+			push!(aug_df[:img],mimg)
+			push!(aug_df[:id],imgid)
+			push!(aug_df[:label],finalselection[i]["label"])
+		end
+	end
+	aug_df = DataFrame(aug_df)
+end;
 
-# ╔═╡ 57103a08-fefc-4c8c-85cb-a054de9edc5b
-function ApplyGamma(img_ids,dataset)
-    for id in img_ids
-        if dataset == "mnist"
-			mimg = applygamma(mnist_x[id,:])
-			mnist_x[id,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/mnist_"* string(id)* ".png"
-            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
-        else
-			mimg = applyequalization(fmnist_x[id-N,:])
-			fmnist_x[id-N,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/fmnist_"* string(id)* ".png"
-            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applygamma(mimg)))
-        end
-    end
-end
+# ╔═╡ 82f629f5-204a-433d-860f-4773326de455
+aug_df[:,:img]
 
-# ╔═╡ 583923b6-f08a-4074-94ff-2fc480e16277
-function ApplyEqualization(img_ids,dataset)
-    for id in img_ids
-        if dataset == "mnist"
-			mimg = applyequalization(mnist_x[id,:])
-			mnist_x[id,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/mnist_"* string(id)* ".png"
-            save("./images/modified/mnist_"*string(id)*".png",MNIST.convert2image(mimg))
-        else
-			mimg = applyequalization(fmnist_x[id-N,:])
-			fmnist_x[id-N,:] = mimg
-			df[id,:img] = "http://localhost:5000/modified/fmnist_"* string(id)* ".png"
-            save("./images/modified/fmnist_"*string(id)*".png",MNIST.convert2image(applyequalization(mimg)))
-        end
-    end
+# ╔═╡ 4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+begin
+	savetransformation 
+	augmnist_x = copy(mnist_x)
+	augfmnist_x = copy(fmnist_x)
+	_idmnist = aug_df[aug_df[:,:dataset] .== "mnist",:id]
+	_idfmnist = aug_df[aug_df[:,:dataset] .== "fmnist",:id] .- N
+	
+	if length(_idmnist) > 1
+		augmnist_x[_idmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "mnist",:array]...)'
+	end
+	if length(_idfmnist) > 1
+		augmnist_x[_idfmnist,:] .= hcat(aug_df[aug_df[:,:dataset] .== "fmnist",:array]...)'
+	end
+	Cfinal, γfinal, otddfinal = ot.OTDD.otdd(augmnist_x,mnist_y, augfmnist_x, fmnist_y, W=W);
+end;
+
+# ╔═╡ 7a410198-26f4-4319-9739-851a87359c67
+md"""
+# Did the modifications improve the results?
+
+#### Final OTDD = $(round(otddfinal,digits=2))
+#### Intial OTDD = $(round(otdd_initial,digits=2))
+"""
+
+# ╔═╡ 5fce3b27-cef6-46e2-8776-9e185902e414
+let
+	savetransformation
+	if size(aug_df)[1] > 0
+		for row in eachrow(aug_df)
+			save("./images/modified/mnist_"*string(row[:id])*".png",
+				row[:img])
+		end
+	end
 end
 
 # ╔═╡ Cell order:
@@ -760,32 +715,28 @@ end
 # ╟─a9cb0024-ae23-4fc9-81d8-4ea335884900
 # ╟─e314152b-9f97-43cd-a164-8833d13c1eb0
 # ╟─95063639-9e69-4bff-85e0-31e642be8a0a
-# ╠═b3e7ad58-ac03-463c-9df9-bdf5872a23ed
+# ╟─b3e7ad58-ac03-463c-9df9-bdf5872a23ed
 # ╟─f2fdc529-f0ac-4860-9cbc-4cb2e98abaf9
-# ╠═4adf778c-bf01-4b93-93c6-1c6cd326e184
+# ╟─4adf778c-bf01-4b93-93c6-1c6cd326e184
 # ╟─ba9df336-c132-4ff0-9f34-6b8b5b0b34a7
 # ╟─d58935cf-d11a-4262-9389-e2f17b33d800
-# ╠═82f629f5-204a-433d-860f-4773326de455
-# ╠═5601474e-ac92-4356-8e63-d91ca3111fa8
-# ╠═d0267b4a-8e52-42d7-9a36-7ca3259f3f31
-# ╠═4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
-# ╠═f3c8e3ad-d890-43eb-881e-56f89b8a0f98
-# ╟─839f0087-5890-462d-8507-70b3c3db797d
-# ╟─a3feade2-822e-43eb-8a02-5b67985af4c0
+# ╟─82f629f5-204a-433d-860f-4773326de455
 # ╟─bf62c705-49cc-4545-8bdf-316a61c9a5c0
-# ╠═5fce3b27-cef6-46e2-8776-9e185902e414
-# ╠═d468ee56-e522-421b-91b3-66135b0e8683
 # ╟─7a410198-26f4-4319-9739-851a87359c67
-# ╠═4c11b8f3-e8e6-4932-acb5-b6de350efe8c
+# ╟─4c11b8f3-e8e6-4932-acb5-b6de350efe8c
 # ╟─caa1aad4-7c09-41ce-8b59-2ec257fefc87
+# ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
 # ╠═df0f24fd-f847-40fb-b3dc-12350face55f
 # ╠═239deeeb-b34f-4057-9752-4d6f5e0b916d
 # ╟─835d761d-bfe5-45f6-919d-d0c03711a5c8
-# ╠═70a5b623-418e-4b91-a1b2-dd88a26d5756
-# ╠═57103a08-fefc-4c8c-85cb-a054de9edc5b
-# ╠═583923b6-f08a-4074-94ff-2fc480e16277
-# ╠═e526398c-e77e-43fe-bfb4-638ff2ad579b
-# ╠═6c333ac9-22a6-4353-a4f1-67bebdaadc24
+# ╠═d468ee56-e522-421b-91b3-66135b0e8683
+# ╠═a3feade2-822e-43eb-8a02-5b67985af4c0
+# ╠═839f0087-5890-462d-8507-70b3c3db797d
+# ╠═4ca60e23-30dd-427f-ac5c-ea68c8f3e2b7
+# ╠═f3c8e3ad-d890-43eb-881e-56f89b8a0f98
+# ╠═d0267b4a-8e52-42d7-9a36-7ca3259f3f31
+# ╠═5601474e-ac92-4356-8e63-d91ca3111fa8
+# ╠═5fce3b27-cef6-46e2-8776-9e185902e414
 # ╠═1b066cf7-bf1b-4445-9e58-275679838973
 # ╠═f1cf5f97-dd45-4d0d-beea-3640ff5aa96e
 # ╠═ad4fe979-f23e-4a68-a69b-b98d3406c90b
